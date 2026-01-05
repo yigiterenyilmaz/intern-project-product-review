@@ -1,6 +1,6 @@
 // React Native ProductDetailsScreen
 // Rating breakdown click-to-filter + helpful + review submit refresh + robust image fallback + Pagination + Server-side Filtering
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -134,6 +134,10 @@ export const ProductDetailsScreen: React.FC = () => {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
 
+  // Refs for scrolling
+  const scrollViewRef = useRef<ScrollView>(null);
+  const reviewsSectionRef = useRef<View>(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -259,6 +263,19 @@ export const ProductDetailsScreen: React.FC = () => {
     }
   };
 
+  const scrollToReviews = () => {
+    reviewsSectionRef.current?.measureLayout(
+      scrollViewRef.current as any,
+      (x, y) => {
+        scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+      },
+      () => {
+        // Fallback if measureLayout fails
+        console.log('measureLayout failed');
+      }
+    );
+  };
+
   const handleAddReview = async (payload: { userName: string; rating: number; comment: string }) => {
     try {
       await postReview(productId, {
@@ -309,7 +326,7 @@ export const ProductDetailsScreen: React.FC = () => {
 
   return (
     <ScreenWrapper backgroundColor={colors.background}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={20} color={colors.foreground} />
           <Text style={[styles.backButtonText, { color: colors.foreground }]}>Back</Text>
@@ -347,9 +364,11 @@ export const ProductDetailsScreen: React.FC = () => {
 
           <View style={styles.ratingRow}>
             <StarRating rating={avgRating} size="md" />
-            <Text style={[styles.ratingMeta, { color: colors.mutedForeground }]}>
-              {avgRating.toFixed(1)} ({product?.reviewCount ?? reviews.length} reviews)
-            </Text>
+            <TouchableOpacity onPress={scrollToReviews} activeOpacity={0.7}>
+              <Text style={[styles.ratingMeta, { color: colors.mutedForeground }]}>
+                {avgRating.toFixed(1)} ({product?.reviewCount ?? reviews.length} reviews)
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {!!(product as any)?.description && (
@@ -385,7 +404,7 @@ export const ProductDetailsScreen: React.FC = () => {
           </View>
 
           {/* Reviews */}
-          <View style={styles.section}>
+          <View ref={reviewsSectionRef} style={styles.section} collapsable={false}>
             <View style={styles.reviewsHeader}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
                 Reviews {selectedRating !== null ? `(${selectedRating}★)` : ''}
@@ -481,7 +500,7 @@ const styles = StyleSheet.create({
   title: { fontSize: FontSize['2xl'], fontWeight: FontWeight.bold },
 
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  ratingMeta: { fontSize: FontSize.sm },
+  ratingMeta: { fontSize: FontSize.sm, textDecorationLine: 'underline' },
 
   description: { fontSize: FontSize.base, lineHeight: 20 },
 
