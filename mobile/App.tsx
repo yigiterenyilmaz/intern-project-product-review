@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ProductListScreen } from './screens/ProductListScreen';
 import { ProductDetailsScreen } from './screens/ProductDetailsScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
+import { NotificationDetailScreen } from './screens/NotificationDetailScreen';
 import { NotificationProvider } from './context/NotificationContext';
 import { ToastProvider } from './context/ToastContext';
 import { RootStackParamList } from './types';
@@ -36,6 +37,11 @@ export default function App() {
                 name="Notifications" 
                 component={NotificationsScreen}
                 options={{ animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen 
+                name="NotificationDetail" 
+                component={NotificationDetailScreen}
+                options={{ animation: 'slide_from_right' }}
               />
             </Stack.Navigator>
           </NavigationContainer>

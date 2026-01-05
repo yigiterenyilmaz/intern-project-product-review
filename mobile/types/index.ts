@@ -1,3 +1,18 @@
+// TypeScript type definitions for navigation and data models
+
+export type RootStackParamList = {
+  ProductList: undefined;
+  ProductDetails: { 
+    productId: string;
+    imageUrl?: string;
+    name?: string;
+  };
+  Notifications: undefined;
+  NotificationDetail: {
+    notificationId: string;
+  };
+};
+
 export interface Review {
   id: string;
   productId: string;
@@ -7,22 +22,3 @@ export interface Review {
   createdAt: string;
   helpful: number;
 }
-
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  image: string;
-  averageRating: number;
-  reviewCount: number;
-  reviews: Review[];
-  ratingBreakdown?: Record<number, number>;
-}
-
-export type RootStackParamList = {
-  ProductList: undefined;
-  ProductDetails: { productId: string };
-  Notifications: undefined;
-};

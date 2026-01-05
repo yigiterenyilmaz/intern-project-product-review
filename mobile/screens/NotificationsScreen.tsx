@@ -86,10 +86,8 @@ export const NotificationsScreen: React.FC = () => {
   const handleNotificationPress = (notification: Notification) => {
     markAsRead(notification.id);
     
-    // Navigate to product details if it's a review notification with productId
-    if (notification.type === 'review' && notification.data?.productId) {
-      navigation.navigate('ProductDetails', { productId: notification.data.productId });
-    }
+    // Navigate to notification detail screen
+    navigation.navigate('NotificationDetail', { notificationId: notification.id } as any);
   };
 
   const renderFilterChip = ({ key, label }: { key: FilterType; label: string }) => {
