@@ -10,7 +10,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize } from '../constants/theme';
+import { Spacing, FontSize } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface StarRatingProps {
   rating: number;
@@ -37,7 +38,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
   showValue = false,
   style,
 }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
   const iconSize = sizeMap[size];
 
   const handlePress = (index: number) => {

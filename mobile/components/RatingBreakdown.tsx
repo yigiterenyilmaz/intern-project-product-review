@@ -4,7 +4,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface RatingBreakdownProps {
   // Option 1: Use pre-calculated breakdown from backend
@@ -26,7 +27,7 @@ export const RatingBreakdown: React.FC<RatingBreakdownProps> = ({
   selectedRating = null,
   onSelectRating,
 }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
 
   const data = useMemo(() => {
     // If backend provides breakdown, use it

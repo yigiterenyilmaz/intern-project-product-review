@@ -6,9 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { StarRating } from './StarRating';
 import { RootStackParamList } from '../types';
-import { Colors, Spacing, BorderRadius, Shadow, FontWeight } from '../constants/theme';
+import { Spacing, BorderRadius, Shadow, FontWeight } from '../constants/theme';
 import { ApiProduct } from '../services/api';
 import { useWishlist } from '../context/WishlistContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface ProductCardProps {
   product: ApiProduct;
@@ -26,7 +27,7 @@ function imageForCategory(category?: string) {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const colors = Colors.light;
+  const { colors } = useTheme();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const productId = String((product as any)?.id ?? '');
@@ -46,19 +47,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const avgRating = (product as any)?.averageRating ?? 0;
 
   const handlePress = () => {
-    // ✅ MIN FIX: imageUrl + name'i route param ile gönderiyoruz
     navigation.navigate(
       'ProductDetails',
       {
         productId: String((product as any)?.id ?? ''),
         imageUrl: imageUri,
         name: (product as any)?.name ?? null,
-      } as any // RootStackParamList dar tanımlıysa TS hata vermesin diye
+      } as any
     );
   };
 
   const handleWishlistToggle = (e: any) => {
-    e.stopPropagation(); // Prevent card press
+    e.stopPropagation();
     toggleWishlist({
       id: productId,
       name: (product as any)?.name ?? 'Product',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
-    ...Shadow.soft, // ✅ SYNTAX FIX (senin dosyada .Shadow.soft gibi typo vardı)
+    ...Shadow.soft,
   },
 
   imageContainer: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
-    ...Shadow.soft, // ✅ SYNTAX FIX
+    ...Shadow.soft,
   },
 
   categoryText: {

@@ -11,16 +11,17 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StarRating } from './StarRating';
 import { Review } from '../types';
-import { Colors, Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface ReviewCardProps {
   review: Review;
   onHelpfulPress?: (reviewId: string) => void;
-  isHelpful?: boolean; // Kullanıcı bu yoruma daha önce helpful demiş mi?
+  isHelpful?: boolean;
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onHelpfulPress, isHelpful = false }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
 
   const formattedDate = new Date(review.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   helpfulButtonActive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)', // Hafif bir arka plan
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   helpfulText: {
     fontSize: FontSize.sm,

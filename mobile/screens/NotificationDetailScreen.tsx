@@ -14,9 +14,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { useNotifications, NotificationType } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList } from '../types';
 import {
-  Colors,
   Spacing,
   FontSize,
   FontWeight,
@@ -37,7 +37,7 @@ function getNotificationIcon(type: NotificationType): keyof typeof Ionicons.glyp
   }
 }
 
-function getNotificationColor(type: NotificationType, colors: typeof Colors.light): string {
+function getNotificationColor(type: NotificationType, colors: ReturnType<typeof useTheme>['colors']): string {
   switch (type) {
     case 'review':
       return colors.primary;
@@ -62,7 +62,7 @@ function formatFullDate(date: Date): string {
 export const NotificationDetailScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteType>();
-  const colors = Colors.light;
+  const { colors } = useTheme();
   const { notifications, markAsRead, clearNotification } = useNotifications();
 
   const notificationId = route.params?.notificationId;

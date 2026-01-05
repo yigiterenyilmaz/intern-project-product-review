@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../constants/theme';
+import { Spacing, FontSize, BorderRadius, Shadow } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 type ButtonVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'premium';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -41,7 +42,7 @@ export const Button: React.FC<ButtonProps> = ({
   textStyle,
   icon,
 }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
 
   const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number; fontSize: number }> = {
     sm: { height: 36, paddingHorizontal: Spacing.md, fontSize: FontSize.sm },

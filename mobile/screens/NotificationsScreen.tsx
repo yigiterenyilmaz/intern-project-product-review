@@ -15,9 +15,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { useNotifications, Notification, NotificationType } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList } from '../types';
 import {
-  Colors,
   Spacing,
   FontSize,
   FontWeight,
@@ -60,7 +60,7 @@ function getNotificationIcon(type: NotificationType): keyof typeof Ionicons.glyp
   }
 }
 
-function getNotificationColor(type: NotificationType, colors: typeof Colors.light): string {
+function getNotificationColor(type: NotificationType, colors: ReturnType<typeof useTheme>['colors']): string {
   switch (type) {
     case 'review':
       return colors.primary;
@@ -73,7 +73,7 @@ function getNotificationColor(type: NotificationType, colors: typeof Colors.ligh
 
 export const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const colors = Colors.light;
+  const { colors } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
@@ -197,7 +197,7 @@ export const NotificationsScreen: React.FC = () => {
   return (
     <ScreenWrapper backgroundColor={colors.background}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={22} color={colors.foreground} />
@@ -241,7 +241,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   headerLeft: {
     flexDirection: 'row',

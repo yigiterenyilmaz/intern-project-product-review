@@ -10,7 +10,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export type SortOption = {
   value: string;
@@ -37,7 +38,7 @@ export const SortFilter: React.FC<SortFilterProps> = ({
   selectedSort,
   onSortChange,
 }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
 
   return (
     <ScrollView

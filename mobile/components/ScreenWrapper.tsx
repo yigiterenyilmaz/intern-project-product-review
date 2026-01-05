@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
@@ -21,13 +21,16 @@ interface ScreenWrapperProps {
 export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   children,
   backgroundColor,
-  statusBarStyle = 'dark-content',
+  statusBarStyle,
   edges = ['top', 'left', 'right'],
   style,
 }) => {
   const insets = useSafeAreaInsets();
-  const colors = Colors.light;
+  const { colors, colorScheme } = useTheme();
   const bgColor = backgroundColor ?? colors.background;
+  
+  // Auto-determine status bar style based on theme if not provided
+  const barStyle = statusBarStyle ?? (colorScheme === 'dark' ? 'light-content' : 'dark-content');
 
   // Calculate padding based on edges
   const paddingStyle: ViewStyle = {
@@ -40,7 +43,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: bgColor }, paddingStyle, style]}>
       <StatusBar
-        barStyle={statusBarStyle}
+        barStyle={barStyle}
         backgroundColor={bgColor}
         translucent={Platform.OS === 'android'}
       />

@@ -18,9 +18,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { StarRating } from '../components/StarRating';
 import { useWishlist, WishlistItem } from '../context/WishlistContext';
+import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList } from '../types';
 import {
-  Colors,
   Spacing,
   FontSize,
   FontWeight,
@@ -30,7 +30,7 @@ import {
 
 export const WishlistScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const colors = Colors.light;
+  const { colors } = useTheme();
   const { wishlist, removeFromWishlist, clearWishlist } = useWishlist();
 
   const { width } = useWindowDimensions();

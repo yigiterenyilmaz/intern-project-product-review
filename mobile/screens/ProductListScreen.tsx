@@ -1,4 +1,4 @@
-// React Native ProductListScreen with Server-side Filtering
+// React Native ProductListScreen with Server-side Filtering + Dark Mode Toggle
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getProducts, ApiProduct } from '../services/api';
 
@@ -25,13 +25,14 @@ import { SortFilter } from '../components/SortFilter';
 import { SearchBar } from '../components/SearchBar';
 import { useNotifications } from '../context/NotificationContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useTheme } from '../context/ThemeContext';
 
 import { RootStackParamList } from '../types';
-import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '../constants/theme';
+import { Spacing, FontSize, FontWeight, BorderRadius } from '../constants/theme';
 
 export const ProductListScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const colors = Colors.light;
+  const { colors, colorScheme, toggleTheme } = useTheme();
   const { unreadCount } = useNotifications();
   const { wishlistCount } = useWishlist();
 
@@ -79,7 +80,7 @@ export const ProductListScreen: React.FC = () => {
       
       console.log('📦 Received products:', page?.content?.length);
       console.log('📄 Total pages:', page?.totalPages);
-      console.log('🔚 Is last page?', page?.last);
+      console.log('📚 Is last page?', page?.last);
       console.log('📊 Current total products in list:', apiProducts.length + (page?.content?.length ?? 0));
       
       const newProducts = page?.content ?? [];
@@ -125,7 +126,7 @@ export const ProductListScreen: React.FC = () => {
       console.log('✅ Loading next page:', currentPage + 1);
       fetchProducts(currentPage + 1, true);
     } else {
-      console.log('⏸️  Load more blocked:', { loadingMore, hasMore, loading });
+      console.log('⏸️ Load more blocked:', { loadingMore, hasMore, loading });
     }
   }, [loadingMore, hasMore, loading, currentPage, fetchProducts]);
 
@@ -164,7 +165,7 @@ export const ProductListScreen: React.FC = () => {
 
   const header = useMemo(() => (
     <View>
-            <View style={styles.topBar}>
+      <View style={styles.topBar}>
         <View style={styles.logoContainer}>
           <LinearGradient colors={[colors.primary, colors.accent]} style={styles.logoIcon}>
             <Ionicons name="star" size={16} color={colors.primaryForeground} />
@@ -173,6 +174,19 @@ export const ProductListScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerButtons}>
+          {/* Dark Mode Toggle */}
+          <TouchableOpacity
+            style={[styles.themeButton, { backgroundColor: colors.secondary }]}
+            onPress={toggleTheme}
+            activeOpacity={0.8}
+          >
+            <Ionicons 
+              name={colorScheme === 'dark' ? 'sunny' : 'moon'} 
+              size={20} 
+              color={colors.foreground} 
+            />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.wishlistButton}
             onPress={() => navigation.navigate('Wishlist')}
@@ -200,7 +214,6 @@ export const ProductListScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-
 
       <View style={[styles.heroSection, { backgroundColor: colors.secondary }]}>
         <Text style={[styles.heroTitle, { color: colors.foreground }]}>
@@ -248,6 +261,8 @@ export const ProductListScreen: React.FC = () => {
     </View>
   ), [
     colors,
+    colorScheme,
+    toggleTheme,
     navigation,
     unreadCount,
     wishlistCount,
@@ -287,7 +302,6 @@ export const ProductListScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"
-        
         
         onEndReached={loadMoreProducts}
         onEndReachedThreshold={0.5}
@@ -339,6 +353,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+
+  themeButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   wishlistButton: { 

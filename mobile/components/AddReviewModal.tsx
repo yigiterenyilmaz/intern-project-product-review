@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StarRating } from './StarRating';
 import { Button } from './Button';
 import { Colors, Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 // ✅ IMPORTANT: ToastProvider MUST be inside <Modal> to render in the same native layer.
 import { ToastProvider, useToast } from '../context/ToastContext';
@@ -40,7 +41,7 @@ const AddReviewModalContent: React.FC<Omit<AddReviewModalProps, 'visible'>> = ({
   productName,
   onSubmit,
 }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
   const { showToast } = useToast();
 
   const [rating, setRating] = useState(0);

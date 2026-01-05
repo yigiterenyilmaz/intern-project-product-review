@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { categories } from '../constants/data';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../constants/theme';
+import { Spacing, FontSize, BorderRadius, Shadow } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface CategoryFilterProps {
   selectedCategory: string;
@@ -22,7 +23,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selectedCategory,
   onCategoryChange,
 }) => {
-  const colors = Colors.light;
+  const { colors } = useTheme();
 
   return (
     <ScrollView

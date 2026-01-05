@@ -24,6 +24,7 @@ import { Button } from '../components/Button';
 import { AddReviewModal } from '../components/AddReviewModal';
 
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList, Review } from '../types';
 import {
   getProduct,
@@ -113,7 +114,7 @@ export const ProductDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteT>();
   const { showToast } = useToast();
-  const colors = Colors.light;
+  const { colors } = useTheme();
 
   const productId = String((route.params as any)?.productId ?? (route.params as any)?.id ?? '');
   const routeImageUrl = String((route.params as any)?.imageUrl ?? '');
