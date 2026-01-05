@@ -232,19 +232,31 @@ export const ProductDetailsScreen: React.FC = () => {
   }, [imageUri]);
 
   const handleHelpfulPress = async (reviewId: string) => {
-    if (helpfulReviews.includes(reviewId)) return;
+    const isCurrentlyHelpful = helpfulReviews.includes(reviewId);
+    
+    if (isCurrentlyHelpful) {
+      // Remove helpful - toggle off
+      setReviews((prev) =>
+        prev.map((r) => (r.id === reviewId ? { ...r, helpful: Math.max(0, (r.helpful ?? 0) - 1) } : r))
+      );
+      
+      const next = helpfulReviews.filter(id => id !== reviewId);
+      setHelpfulReviews(next);
+      persistHelpful(next);
+    } else {
+      // Add helpful - toggle on
+      setReviews((prev) =>
+        prev.map((r) => (r.id === reviewId ? { ...r, helpful: (r.helpful ?? 0) + 1 } : r))
+      );
 
-    setReviews((prev) =>
-      prev.map((r) => (r.id === reviewId ? { ...r, helpful: (r.helpful ?? 0) + 1 } : r))
-    );
+      const next = [...helpfulReviews, reviewId];
+      setHelpfulReviews(next);
+      persistHelpful(next);
 
-    const next = [...helpfulReviews, reviewId];
-    setHelpfulReviews(next);
-    persistHelpful(next);
-
-    try {
-      await (markReviewAsHelpful as any)(reviewId);
-    } catch {}
+      try {
+        await (markReviewAsHelpful as any)(reviewId);
+      } catch {}
+    }
   };
 
   const handleAddReview = async (payload: { userName: string; rating: number; comment: string }) => {

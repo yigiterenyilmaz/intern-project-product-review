@@ -58,8 +58,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onHelpfulPress, 
       <TouchableOpacity 
         style={[styles.helpfulButton, isHelpful && styles.helpfulButtonActive]} 
         activeOpacity={0.7}
-        onPress={() => !isHelpful && onHelpfulPress && onHelpfulPress(review.id)}
-        disabled={isHelpful}
+        onPress={() => onHelpfulPress && onHelpfulPress(review.id)}
       >
         <Ionicons 
           name={isHelpful ? "thumbs-up" : "thumbs-up-outline"} 
