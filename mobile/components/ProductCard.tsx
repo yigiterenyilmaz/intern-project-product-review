@@ -27,7 +27,7 @@ function imageForCategory(category?: string) {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { colors } = useTheme();
+  const { colors, colorScheme } = useTheme();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const productId = String((product as any)?.id ?? '');
@@ -69,6 +69,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     });
   };
 
+  // Wishlist button styling - theme-aware
+  const wishlistButtonBg = inWishlist 
+    ? colors.primary 
+    : colorScheme === 'dark' 
+      ? 'rgba(28, 25, 23, 0.9)' // Dark mode: dark background
+      : 'rgba(255, 255, 255, 0.9)'; // Light mode: white background
+  
+  const wishlistIconColor = inWishlist 
+    ? '#fff' 
+    : colorScheme === 'dark'
+      ? colors.foreground // Dark mode: white icon
+      : colors.foreground; // Light mode: dark icon
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -78,16 +91,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
 
-        {/* Wishlist button */}
+        {/* Wishlist button - improved contrast */}
         <TouchableOpacity
-          style={[styles.wishlistButton, { backgroundColor: inWishlist ? colors.primary : 'rgba(255,255,255,0.9)' }]}
+          style={[styles.wishlistButton, { backgroundColor: wishlistButtonBg }]}
           onPress={handleWishlistToggle}
           activeOpacity={0.8}
         >
           <Ionicons
             name={inWishlist ? 'heart' : 'heart-outline'}
             size={20}
-            color={inWishlist ? '#fff' : colors.foreground}
+            color={wishlistIconColor}
           />
         </TouchableOpacity>
 
