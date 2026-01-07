@@ -137,7 +137,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, numColumns = 
         </Text>
 
         <View style={styles.ratingRow}>
-          <StarRating rating={avgRating} size="sm" />
+          <StarRating rating={avgRating} size="sm" compact={numColumns === 4} />
           <Text style={[
             styles.reviewCount, 
             { color: colors.mutedForeground },

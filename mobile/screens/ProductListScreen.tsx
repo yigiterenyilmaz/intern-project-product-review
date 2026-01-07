@@ -1,7 +1,7 @@
 // React Native ProductListScreen with Server-side Filtering + Dark Mode Toggle + Grid Layout Toggle
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getProducts, ApiProduct } from '../services/api';
-
+import { TouchableWithoutFeedback } from 'react-native';
 import {
   View,
   Text,
@@ -20,11 +20,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { ProductCard } from '../components/ProductCard';
+import { SelectableProductCard } from '../components/SelectableProductCard';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { SortFilter } from '../components/SortFilter';
 import { SearchBar } from '../components/SearchBar';
 import { useNotifications } from '../context/NotificationContext';
-import { useWishlist } from '../context/WishlistContext';
+import { useWishlist, WishlistItem } from '../context/WishlistContext';
 import { useTheme } from '../context/ThemeContext';
 
 import { RootStackParamList } from '../types';
@@ -43,6 +44,12 @@ export const ProductListScreen: React.FC = () => {
   const [gridMode, setGridMode] = useState<1 | 2 | 4>(2);
   
   const numColumns = gridMode;
+
+  // Multi-select mode
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const { addToWishlist, addMultipleToWishlist, isInWishlist } = useWishlist();
+
 
   const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +79,71 @@ export const ProductListScreen: React.FC = () => {
     if (gridMode === 1) return 'list';
     if (gridMode === 2) return 'grid';
     return 'apps'; // 4 columns
+  };
+
+
+  // Selection handlers
+  const handleCardPress = (product: ApiProduct) => {
+    if (isSelectionMode) {
+      const productId = String((product as any)?.id ?? '');
+      const newSelected = new Set(selectedItems);
+      if (newSelected.has(productId)) {
+        newSelected.delete(productId);
+      } else {
+        newSelected.add(productId);
+      }
+      setSelectedItems(newSelected);
+      if (newSelected.size === 0) {
+        setIsSelectionMode(false);
+      }
+    } else {
+      navigation.navigate('ProductDetails', {
+        productId: String((product as any)?.id ?? ''),
+        imageUrl: (product as any)?.imageUrl,
+        name: (product as any)?.name,
+      } as any);
+    }
+  };
+
+  const handleCardLongPress = (product: ApiProduct) => {
+    const productId = String((product as any)?.id ?? '');
+    setIsSelectionMode(true);
+    setSelectedItems(new Set([productId]));
+  };
+
+  // Bulk add selected products to wishlist (professional method name)
+  const handleAddMultiple = () => {
+    // Convert Set to Array for processing
+    const selectedProductIds = Array.from(selectedItems);
+    
+    // Build wishlist items array
+    const itemsToAdd: Array<Omit<WishlistItem, 'addedAt'>> = [];
+    
+    selectedProductIds.forEach(productId => {
+      const product = apiProducts.find(p => String((p as any)?.id) === productId);
+      if (product) {
+        itemsToAdd.push({
+          id: productId,
+          name: (product as any)?.name ?? 'Product',
+          price: (product as any)?.price,
+          imageUrl: (product as any)?.imageUrl,
+          category: (product as any)?.category,
+          averageRating: (product as any)?.averageRating,
+        });
+      }
+    });
+    
+    // Add all items to wishlist in one optimized batch
+    addMultipleToWishlist(itemsToAdd);
+    
+    // Reset selection state
+    setSelectedItems(new Set());
+    setIsSelectionMode(false);
+  };
+
+  const handleCancelSelection = () => {
+    setSelectedItems(new Set());
+    setIsSelectionMode(false);
   };
 
   const fetchProducts = useCallback(async (pageNum: number = 0, append: boolean = false) => {
@@ -284,9 +356,15 @@ export const ProductListScreen: React.FC = () => {
 
   return (
     <ScreenWrapper backgroundColor={colors.background}>
+      <TouchableWithoutFeedback onPress={() => {
+        if (isSelectionMode && selectedItems.size > 0) {
+          handleCancelSelection();
+        }
+      }}>
+        <View style={{ flex: 1 }}>
       <FlatList
         data={filteredProducts}
-        key={numColumns}
+        key={`${numColumns}-${isSelectionMode ? 'select' : 'normal'}`}
         numColumns={numColumns}
         keyExtractor={(item) => String((item as any)?.id)}
         ListHeaderComponent={header}
@@ -304,7 +382,14 @@ export const ProductListScreen: React.FC = () => {
               numColumns === 1 && { paddingHorizontal: Spacing.lg },
             ]}
           >
-            <ProductCard product={item} numColumns={numColumns} />
+            <SelectableProductCard
+              product={item}
+              numColumns={numColumns}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedItems.has(String((item as any)?.id ?? ''))}
+              onPress={handleCardPress}
+              onLongPress={handleCardLongPress}
+            />
           </View>
         )}
         showsVerticalScrollIndicator={false}
@@ -332,6 +417,34 @@ export const ProductListScreen: React.FC = () => {
           ) : null
         }
       />
+
+          {/* Floating action bar */}
+          {isSelectionMode && selectedItems.size > 0 && (
+            <View style={[styles.floatingBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.floatingButton, styles.cancelButton]}
+                onPress={handleCancelSelection}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.floatingButtonText, { color: colors.foreground }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.floatingButton, styles.addButton, { backgroundColor: colors.primary }]}
+                onPress={handleAddMultiple}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="heart" size={18} color="#fff" />
+                <Text style={[styles.floatingButtonText, { color: '#fff' }]}>
+                  Add to Wishlist ({selectedItems.size})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
     </ScreenWrapper>
   );
 };
@@ -483,6 +596,42 @@ const styles = StyleSheet.create({
   webMaxWidth: {
     width: '100%',
     maxWidth: 1200,
-    alignSelf: 'center',
+    alignSelf: 'center',},
+
+  floatingBar: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-});
+  floatingButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+  },
+  addButton: {
+    // backgroundColor set inline
+  },
+  floatingButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+  },
+  });

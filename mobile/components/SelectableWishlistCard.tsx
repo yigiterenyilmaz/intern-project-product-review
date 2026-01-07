@@ -36,7 +36,6 @@ export const SelectableWishlistCard: React.FC<SelectableWishlistCardProps> = ({
 }) => {
   const { colors } = useTheme();
   
-  // Shake animation
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -76,13 +75,13 @@ export const SelectableWishlistCard: React.FC<SelectableWishlistCardProps> = ({
   });
 
   return (
-    <View style={{ width }}>
+    <View>
       <Animated.View
-        style={[
-          isSelectionMode && {
-            transform: [{ rotate: rotateInterpolate }],
-          },
-        ]}
+        style={
+          isSelectionMode
+            ? [{ transform: [{ rotate: rotateInterpolate }] }]
+            : []
+        }
       >
         <TouchableOpacity
           activeOpacity={0.9}
@@ -96,64 +95,62 @@ export const SelectableWishlistCard: React.FC<SelectableWishlistCardProps> = ({
           onLongPress={() => onLongPress(item)}
           delayLongPress={2250}
         >
-        <View style={styles.imageContainer}>
-          {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={styles.image} resizeMode="cover" />
-          ) : (
-            <View style={[styles.imagePlaceholder, { backgroundColor: colors.muted }]}>
-              <Ionicons name="image-outline" size={32} color={colors.mutedForeground} />
-            </View>
-          )}
+          <View style={styles.imageContainer}>
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.image} resizeMode="cover" />
+            ) : (
+              <View style={[styles.imagePlaceholder, { backgroundColor: colors.muted }]}>
+                <Ionicons name="image-outline" size={32} color={colors.mutedForeground} />
+              </View>
+            )}
 
-          {/* Remove button - hide in selection mode */}
-          {!isSelectionMode && (
-            <TouchableOpacity
-              style={[styles.removeButton, { backgroundColor: colors.destructive }]}
-              onPress={() => onRemove(item.id)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="close" size={16} color="#fff" />
-            </TouchableOpacity>
-          )}
+            {!isSelectionMode && (
+              <TouchableOpacity
+                style={[styles.removeButton, { backgroundColor: colors.destructive }]}
+                onPress={() => onRemove(item.id)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+            )}
 
-          {/* Selection indicator */}
-          {isSelectionMode && (
-            <View
-              style={[
-                styles.selectionIndicator,
-                {
-                  backgroundColor: isSelected ? colors.primary : 'rgba(255,255,255,0.9)',
-                  borderColor: isSelected ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
-            </View>
-          )}
-        </View>
+            {isSelectionMode && (
+              <View
+                style={[
+                  styles.selectionIndicator,
+                  {
+                    backgroundColor: isSelected ? colors.primary : 'rgba(255,255,255,0.9)',
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+              </View>
+            )}
+          </View>
 
-        <View style={styles.content}>
-          <Text numberOfLines={2} style={[styles.name, { color: colors.foreground }]}>
-            {item.name}
-          </Text>
-
-          {item.averageRating !== undefined && (
-            <StarRating rating={item.averageRating} size="sm" />
-          )}
-
-          {item.price !== undefined && (
-            <Text style={[styles.price, { color: colors.primary }]}>
-              ${item.price.toFixed(2)}
+          <View style={styles.content}>
+            <Text numberOfLines={2} style={[styles.name, { color: colors.foreground }]}>
+              {item.name}
             </Text>
-          )}
 
-          {item.category && (
-            <Text style={[styles.category, { color: colors.mutedForeground }]}>
-              {item.category}
-            </Text>
-          )}
-        </View>
-      </TouchableOpacity>
+            {item.averageRating !== undefined && (
+              <StarRating rating={item.averageRating} size="sm" />
+            )}
+
+            {item.price !== undefined && (
+              <Text style={[styles.price, { color: colors.primary }]}>
+                ${item.price.toFixed(2)}
+              </Text>
+            )}
+
+            {item.category && (
+              <Text style={[styles.category, { color: colors.mutedForeground }]}>
+                {item.category}
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
       </Animated.View>
     </View>
   );

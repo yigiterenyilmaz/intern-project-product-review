@@ -21,6 +21,7 @@ interface StarRatingProps {
   onRatingChange?: (rating: number) => void;
   showValue?: boolean;
   style?: ViewStyle;
+  compact?: boolean; // FIX: 4 sütunda küçük yıldız
 }
 
 const sizeMap = {
@@ -37,9 +38,11 @@ export const StarRating: React.FC<StarRatingProps> = ({
   onRatingChange,
   showValue = false,
   style,
+  compact = false, // FIX: Default false
 }) => {
   const { colors } = useTheme();
-  const iconSize = sizeMap[size];
+  // FIX: 4 sütunda 12px, yoksa normal
+  const iconSize = compact ? 12 : sizeMap[size];
 
   const handlePress = (index: number) => {
     if (interactive && onRatingChange) {

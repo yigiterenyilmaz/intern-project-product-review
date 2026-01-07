@@ -37,7 +37,7 @@ type RouteType = RouteProp<RootStackParamList, 'ProductDetails'>;
 const ProductDetailsContent: React.FC = () => {
   const route = useRoute<RouteType>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { colors } = useTheme();
+  const { colors, colorScheme } = useTheme();
   const { showToast } = useToast();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { addNotification } = useNotifications();
@@ -57,6 +57,13 @@ const ProductDetailsContent: React.FC = () => {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
 
   const inWishlist = isInWishlist(productId);
+  // Wishlist button styling - theme-aware
+  const wishlistButtonBg = inWishlist
+    ? colors.primary
+    : colorScheme === 'dark'
+      ? 'rgba(28, 25, 23, 0.9)'
+      : 'rgba(255, 255, 255, 0.9)';
+  const wishlistIconColor = inWishlist ? '#fff' : colors.foreground;
 
   useEffect(() => {
     fetchProduct();
@@ -204,13 +211,13 @@ const ProductDetailsContent: React.FC = () => {
             <TouchableOpacity
               onPress={handleWishlistToggle}
               style={[styles.wishlistButton, {
-                backgroundColor: inWishlist ? colors.primary : 'rgba(255,255,255,0.9)',
+                backgroundColor: wishlistButtonBg,
               }]}
             >
               <Ionicons
                 name={inWishlist ? 'heart' : 'heart-outline'}
                 size={24}
-                color={inWishlist ? '#fff' : colors.foreground}
+                color={wishlistIconColor}
               />
             </TouchableOpacity>
           </View>

@@ -32,7 +32,7 @@ import {
 export const WishlistScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { colors } = useTheme();
-  const { wishlist, removeFromWishlist, clearWishlist } = useWishlist();
+  const { wishlist, removeFromWishlist, removeMultipleFromWishlist, clearWishlist } = useWishlist();
 
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
@@ -84,23 +84,9 @@ export const WishlistScreen: React.FC = () => {
     return 'apps';
   };
 
-  const stats = useMemo(() => {
-    const totalPrice = wishlist.reduce((sum, item) => sum + (item.price || 0), 0);
-    const avgRating = wishlist.length > 0
-      ? wishlist.reduce((sum, item) => sum + (item.averageRating || 0), 0) / wishlist.length
-      : 0;
-
-    return {
-      count: wishlist.length,
-      totalPrice,
-      avgRating,
-    };
-  }, [wishlist]);
-
   // Selection handlers
   const handleCardPress = (item: WishlistItem) => {
     if (isSelectionMode) {
-      // Toggle selection
       const newSelected = new Set(selectedItems);
       if (newSelected.has(item.id)) {
         newSelected.delete(item.id);
@@ -108,13 +94,10 @@ export const WishlistScreen: React.FC = () => {
         newSelected.add(item.id);
       }
       setSelectedItems(newSelected);
-      
-      // Exit if no items selected
       if (newSelected.size === 0) {
         setIsSelectionMode(false);
       }
     } else {
-      // Navigate to product details
       navigation.navigate('ProductDetails', {
         productId: item.id,
         imageUrl: item.imageUrl,
@@ -128,8 +111,15 @@ export const WishlistScreen: React.FC = () => {
     setSelectedItems(new Set([item.id]));
   };
 
-  const handleBulkDelete = () => {
-    selectedItems.forEach(id => removeFromWishlist(id));
+  // Bulk remove selected items from wishlist (professional method name)
+  const handleRemoveMultiple = () => {
+    // Convert Set to Array for processing
+    const selectedIds = Array.from(selectedItems);
+    
+    // Remove all selected items in one optimized batch
+    removeMultipleFromWishlist(selectedIds);
+    
+    // Reset selection state
     setSelectedItems(new Set());
     setIsSelectionMode(false);
   };
@@ -139,16 +129,18 @@ export const WishlistScreen: React.FC = () => {
     setIsSelectionMode(false);
   };
 
+  // FIX: Wrap item properly for column layout
   const renderWishlistItem = ({ item }: { item: WishlistItem }) => (
-    <SelectableWishlistCard
-      item={item}
-      isSelectionMode={isSelectionMode}
-      isSelected={selectedItems.has(item.id)}
-      onPress={handleCardPress}
-      onLongPress={handleCardLongPress}
-      onRemove={removeFromWishlist}
-      width={numColumns > 1 ? `${(100 / numColumns) - (numColumns > 2 ? 2 : 1)}%` : '100%'}
-    />
+    <View style={numColumns > 1 ? styles.gridItemWrapper : styles.listItemWrapper}>
+      <SelectableWishlistCard
+        item={item}
+        isSelectionMode={isSelectionMode}
+        isSelected={selectedItems.has(item.id)}
+        onPress={handleCardPress}
+        onLongPress={handleCardLongPress}
+        onRemove={removeFromWishlist}
+      />
+    </View>
   );
 
   const renderEmpty = () => (
@@ -172,18 +164,28 @@ export const WishlistScreen: React.FC = () => {
     </View>
   );
 
+  const stats = useMemo(() => {
+    const totalPrice = wishlist.reduce((sum, item) => sum + (item.price || 0), 0);
+    const avgRating = wishlist.reduce((sum, item) => sum + (item.averageRating || 0), 0) / wishlist.length;
+    return {
+      itemCount: wishlist.length,
+      avgRating: isNaN(avgRating) ? 0 : avgRating,
+      totalPrice,
+    };
+  }, [wishlist]);
+
   const renderStatsHeader = () => (
     <View>
       {wishlist.length > 0 && (
-        <View style={[styles.statsCard, { backgroundColor: colors.secondary }]}>
-          <View style={styles.statRow}>
+        <View style={[styles.statsSection, { backgroundColor: colors.secondary }]}>
+          <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <LinearGradient colors={[colors.primary, colors.accent]} style={styles.statIcon}>
-                <Ionicons name="heart" size={20} color={colors.primaryForeground} />
+                <Ionicons name="cube" size={20} color={colors.primaryForeground} />
               </LinearGradient>
               <View>
                 <Text style={[styles.statValue, { color: colors.foreground }]}>
-                  {stats.count}
+                  {stats.itemCount}
                 </Text>
                 <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
                   Items
@@ -314,7 +316,7 @@ export const WishlistScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={[styles.floatingButton, styles.deleteButton, { backgroundColor: colors.destructive }]}
-                onPress={handleBulkDelete}
+                onPress={handleRemoveMultiple}
                 activeOpacity={0.8}
               >
                 <Ionicons name="trash-outline" size={18} color="#fff" />
@@ -355,13 +357,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     marginTop: 2,
   },
-  
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-
   gridToggleButton: {
     width: 36,
     height: 36,
@@ -369,15 +369,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
   clearAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    ...Shadow.soft,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
   },
   clearAllText: {
     color: '#fff',
@@ -385,16 +383,18 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
   },
 
-  statsCard: {
+  statsSection: {
     marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.lg,
-    padding: Spacing.lg,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
     borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
-  statRow: {
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    gap: Spacing.md,
+    alignItems: 'center',
   },
   statItem: {
     flexDirection: 'row',
@@ -421,8 +421,24 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.lg,
+    gap: Spacing.md,
     marginTop: Spacing.md,
+  },
+  
+  // FIX: Proper wrapper for grid items
+  gridItemWrapper: {
+    flex: 1,
+    maxWidth: '50%', // Will be overridden by flex
+  },
+  listItemWrapper: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+
+  webMaxWidth: {
+    width: '100%',
+    maxWidth: 1200,
+    alignSelf: 'center',
   },
 
   emptyContainer: {
@@ -452,23 +468,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyButton: {
-    paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.lg,
-    ...Shadow.soft,
   },
   emptyButtonText: {
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
   },
 
-  webMaxWidth: {
-    width: '100%',
-    maxWidth: 1200,
-    alignSelf: 'center',
-  },
-
-  // Floating action bar
   floatingBar: {
     position: 'absolute',
     bottom: Spacing.xl,
@@ -480,11 +488,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Shadow.soft,
   },
   floatingButton: {
     flex: 1,

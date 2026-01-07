@@ -19,7 +19,9 @@ interface WishlistContextType {
   wishlistCount: number;
   isInWishlist: (productId: string) => boolean;
   addToWishlist: (product: Omit<WishlistItem, 'addedAt'>) => void;
+  addMultipleToWishlist: (products: Array<Omit<WishlistItem, 'addedAt'>>) => void;
   removeFromWishlist: (productId: string) => void;
+  removeMultipleFromWishlist: (productIds: string[]) => void;
   toggleWishlist: (product: Omit<WishlistItem, 'addedAt'>) => void;
   clearWishlist: () => void;
 }
@@ -82,9 +84,40 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     [wishlist]
   );
 
+  // Bulk add multiple items to wishlist (optimized)
+  const addMultipleToWishlist = useCallback(
+    (products: Array<Omit<WishlistItem, 'addedAt'>>) => {
+      // Filter out items already in wishlist (duplicate check)
+      const existingIds = new Set(wishlist.map(item => item.id));
+      const newItems = products
+        .filter(p => !existingIds.has(p.id))
+        .map(p => ({
+          ...p,
+          addedAt: new Date(),
+        }));
+      
+      // Add all new items at once
+      const updated = [...newItems, ...wishlist];
+      setWishlist(updated);
+      saveWishlist(updated);
+    },
+    [wishlist]
+  );
+
   const removeFromWishlist = useCallback(
     (productId: string) => {
       const updated = wishlist.filter((item) => item.id !== productId);
+      setWishlist(updated);
+      saveWishlist(updated);
+    },
+    [wishlist]
+  );
+
+  // Bulk remove multiple items from wishlist (optimized)
+  const removeMultipleFromWishlist = useCallback(
+    (productIds: string[]) => {
+      const idsSet = new Set(productIds);
+      const updated = wishlist.filter((item) => !idsSet.has(item.id));
       setWishlist(updated);
       saveWishlist(updated);
     },
@@ -118,7 +151,9 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
         wishlistCount,
         isInWishlist,
         addToWishlist,
+        addMultipleToWishlist,
         removeFromWishlist,
+        removeMultipleFromWishlist,
         toggleWishlist,
         clearWishlist,
       }}
@@ -128,9 +163,9 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-export const useWishlist = () => {
+export const useWishlist = (): WishlistContextType => {
   const context = useContext(WishlistContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useWishlist must be used within a WishlistProvider');
   }
   return context;
