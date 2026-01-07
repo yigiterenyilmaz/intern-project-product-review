@@ -6,9 +6,9 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Image,
   useWindowDimensions,
   Platform,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenWrapper } from '../components/ScreenWrapper';
-import { StarRating } from '../components/StarRating';
+import { SelectableWishlistCard } from '../components/SelectableWishlistCard';
 import { useWishlist, WishlistItem } from '../context/WishlistContext';
 import { useTheme } from '../context/ThemeContext';
 import { RootStackParamList } from '../types';
@@ -37,12 +37,16 @@ export const WishlistScreen: React.FC = () => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
 
-  // FIX: Grid mode toggle (same as ProductListScreen)
+  // Grid mode toggle
   const [gridMode, setGridMode] = useState<1 | 2 | 4>(2);
+  
+  // Multi-select mode
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   
   const numColumns = gridMode;
 
-  // Load saved grid mode on mount
+  // Load saved grid mode
   useEffect(() => {
     loadGridMode();
   }, []);
@@ -66,7 +70,6 @@ export const WishlistScreen: React.FC = () => {
     }
   };
 
-  // Toggle grid: 1 → 2 → 4 → 1
   const toggleGridMode = () => {
     setGridMode(prev => {
       const next = prev === 1 ? 2 : prev === 2 ? 4 : 1;
@@ -75,11 +78,10 @@ export const WishlistScreen: React.FC = () => {
     });
   };
 
-  // Get icon for current grid mode
   const getGridIcon = (): keyof typeof Ionicons.glyphMap => {
     if (gridMode === 1) return 'list';
     if (gridMode === 2) return 'grid';
-    return 'apps'; // 4 columns
+    return 'apps';
   };
 
   const stats = useMemo(() => {
@@ -95,67 +97,58 @@ export const WishlistScreen: React.FC = () => {
     };
   }, [wishlist]);
 
-  const handleProductPress = (item: WishlistItem) => {
-    navigation.navigate('ProductDetails', {
-      productId: item.id,
-      imageUrl: item.imageUrl,
-      name: item.name,
-    } as any);
+  // Selection handlers
+  const handleCardPress = (item: WishlistItem) => {
+    if (isSelectionMode) {
+      // Toggle selection
+      const newSelected = new Set(selectedItems);
+      if (newSelected.has(item.id)) {
+        newSelected.delete(item.id);
+      } else {
+        newSelected.add(item.id);
+      }
+      setSelectedItems(newSelected);
+      
+      // Exit if no items selected
+      if (newSelected.size === 0) {
+        setIsSelectionMode(false);
+      }
+    } else {
+      // Navigate to product details
+      navigation.navigate('ProductDetails', {
+        productId: item.id,
+        imageUrl: item.imageUrl,
+        name: item.name,
+      } as any);
+    }
+  };
+
+  const handleCardLongPress = (item: WishlistItem) => {
+    setIsSelectionMode(true);
+    setSelectedItems(new Set([item.id]));
+  };
+
+  const handleBulkDelete = () => {
+    selectedItems.forEach(id => removeFromWishlist(id));
+    setSelectedItems(new Set());
+    setIsSelectionMode(false);
+  };
+
+  const handleCancelSelection = () => {
+    setSelectedItems(new Set());
+    setIsSelectionMode(false);
   };
 
   const renderWishlistItem = ({ item }: { item: WishlistItem }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.card,
-          width: numColumns > 1 ? `${100 / numColumns - 2}%` : '100%',
-        },
-      ]}
-      onPress={() => handleProductPress(item)}
-    >
-      <View style={styles.imageContainer}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.image} resizeMode="cover" />
-        ) : (
-          <View style={[styles.imagePlaceholder, { backgroundColor: colors.muted }]}>
-            <Ionicons name="image-outline" size={32} color={colors.mutedForeground} />
-          </View>
-        )}
-
-        {/* Remove button */}
-        <TouchableOpacity
-          style={[styles.removeButton, { backgroundColor: colors.destructive }]}
-          onPress={() => removeFromWishlist(item.id)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="close" size={16} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.content}>
-        <Text numberOfLines={2} style={[styles.name, { color: colors.foreground }]}>
-          {item.name}
-        </Text>
-
-        {item.averageRating !== undefined && (
-          <StarRating rating={item.averageRating} size="sm" />
-        )}
-
-        {item.price !== undefined && (
-          <Text style={[styles.price, { color: colors.primary }]}>
-            ${item.price.toFixed(2)}
-          </Text>
-        )}
-
-        {item.category && (
-          <Text style={[styles.category, { color: colors.mutedForeground }]}>
-            {item.category}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
+    <SelectableWishlistCard
+      item={item}
+      isSelectionMode={isSelectionMode}
+      isSelected={selectedItems.has(item.id)}
+      onPress={handleCardPress}
+      onLongPress={handleCardLongPress}
+      onRemove={removeFromWishlist}
+      width={numColumns > 1 ? `${(100 / numColumns) - (numColumns > 2 ? 2 : 1)}%` : '100%'}
+    />
   );
 
   const renderEmpty = () => (
@@ -181,7 +174,6 @@ export const WishlistScreen: React.FC = () => {
 
   const renderStatsHeader = () => (
     <View>
-      {/* Stats */}
       {wishlist.length > 0 && (
         <View style={[styles.statsCard, { backgroundColor: colors.secondary }]}>
           <View style={styles.statRow}>
@@ -232,7 +224,6 @@ export const WishlistScreen: React.FC = () => {
     </View>
   );
 
-  // FIX: Combined header with grid toggle
   const renderListHeader = () => (
     <View>
       {/* Header */}
@@ -251,7 +242,7 @@ export const WishlistScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* FIX: Header actions (grid toggle + clear all) */}
+        {/* Header actions */}
         <View style={styles.headerActions}>
           {/* Grid Toggle Button */}
           {wishlist.length > 0 && (
@@ -284,21 +275,57 @@ export const WishlistScreen: React.FC = () => {
 
   return (
     <ScreenWrapper backgroundColor={colors.background}>
-      <FlatList
-        data={wishlist}
-        key={numColumns}
-        numColumns={numColumns}
-        keyExtractor={(item) => item.id}
-        renderItem={renderWishlistItem}
-        ListHeaderComponent={renderListHeader}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={[
-          styles.listContent,
-          isWeb && styles.webMaxWidth,
-        ]}
-        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-        showsVerticalScrollIndicator={false}
-      />
+      <TouchableWithoutFeedback 
+        onPress={() => {
+          if (isSelectionMode && selectedItems.size > 0) {
+            handleCancelSelection();
+          }
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={wishlist}
+            key={`${numColumns}-${isSelectionMode ? 'select' : 'normal'}`}
+            numColumns={numColumns}
+            keyExtractor={(item) => item.id}
+            renderItem={renderWishlistItem}
+            ListHeaderComponent={renderListHeader}
+            ListEmptyComponent={renderEmpty}
+            contentContainerStyle={[
+              styles.listContent,
+              isWeb && styles.webMaxWidth,
+            ]}
+            columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+            showsVerticalScrollIndicator={false}
+          />
+
+          {/* Floating action bar */}
+          {isSelectionMode && selectedItems.size > 0 && (
+            <View style={[styles.floatingBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.floatingButton, styles.cancelButton]}
+                onPress={handleCancelSelection}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.floatingButtonText, { color: colors.foreground }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.floatingButton, styles.deleteButton, { backgroundColor: colors.destructive }]}
+                onPress={handleBulkDelete}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={18} color="#fff" />
+                <Text style={[styles.floatingButtonText, { color: '#fff' }]}>
+                  Delete ({selectedItems.size})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
     </ScreenWrapper>
   );
 };
@@ -329,14 +356,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   
-  // FIX: Header actions container
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
 
-  // FIX: Grid toggle button
   gridToggleButton: {
     width: 36,
     height: 36,
@@ -345,7 +370,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   
-  // Clear all button
   clearAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -401,58 +425,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
 
-  card: {
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-    ...Shadow.soft,
-  },
-  
-  imageContainer: {
-    position: 'relative',
-    width: '100%',
-    aspectRatio: 1, // Square images
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.soft,
-  },
-
-  content: {
-    padding: Spacing.sm, // Reduced from md for better fit
-    gap: Spacing.xs,
-  },
-  name: {
-    fontSize: FontSize.xs, // Smaller for 4-column
-    fontWeight: FontWeight.semibold,
-    marginBottom: 4,
-  },
-  price: {
-    fontSize: FontSize.sm, // Smaller for 4-column
-    fontWeight: FontWeight.bold,
-  },
-  category: {
-    fontSize: 10, // Even smaller
-  },
-
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -494,5 +466,43 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1200,
     alignSelf: 'center',
+  },
+
+  // Floating action bar
+  floatingBar: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+  },
+  deleteButton: {
+    // backgroundColor set inline
+  },
+  floatingButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
   },
 });

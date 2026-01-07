@@ -300,7 +300,7 @@ export const ProductListScreen: React.FC = () => {
           <View
             style={[
               numColumns > 1 && styles.gridItem,
-              numColumns > 1 && { width: `${100 / numColumns}%` },
+              numColumns > 1 && { flex: 1, maxWidth: `${100 / numColumns - 1}%` },
               numColumns === 1 && { paddingHorizontal: Spacing.lg },
             ]}
           >
