@@ -36,10 +36,6 @@ export const AISummaryCard: React.FC<AISummaryCardProps> = ({ summary }) => {
           <Ionicons name="sparkles" size={16} color="#fff" />
           <Text style={styles.aiBadgeText}>AI Summary</Text>
         </LinearGradient>
-        
-        <View style={[styles.betaTag, { backgroundColor: colors.secondary }]}>
-          <Text style={[styles.betaText, { color: colors.mutedForeground }]}>BETA</Text>
-        </View>
       </View>
 
       {/* Summary text */}
@@ -86,18 +82,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  betaTag: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-  },
-
-  betaText: {
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
     letterSpacing: 0.5,
   },
 

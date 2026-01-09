@@ -1,5 +1,5 @@
 // ProductDetailsScreen.tsx
-// Product details with reviews, ratings, and AI Assistant navigation
+// Product details with reviews, ratings, AI Summary, and AI Assistant navigation
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
@@ -22,6 +22,7 @@ import { RatingBreakdown } from '../components/RatingBreakdown';
 import { ReviewCard } from '../components/ReviewCard';
 import { Button } from '../components/Button';
 import { AddReviewModal } from '../components/AddReviewModal';
+import { AISummaryCard } from '../components/AISummaryCard'; // ✨ Imported AISummaryCard
 
 import { useWishlist } from '../context/WishlistContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -261,6 +262,13 @@ const ProductDetailsContent: React.FC = () => {
             </Text>
           )}
         </View>
+
+        {/* ✨ AI Summary Section */}
+        {product.aiSummary && (
+          <View style={styles.section}>
+            <AISummaryCard summary={product.aiSummary} />
+          </View>
+        )}
 
         {/* Rating Breakdown */}
         {reviews.length > 0 && (
