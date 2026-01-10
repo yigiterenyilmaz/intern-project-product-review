@@ -1,110 +1,123 @@
-# 📱 Product Review Application
+# Product Review – Full Stack Application (Mobile + Backend)
 
-**Backend:** Spring Boot  
-**Mobile App:** React Native  
-**Authentication:** Not included (out of scope)
+## Overview
+This repository contains a **full-stack Product Review application** built with:
+- **Mobile Frontend:** React Native (Expo, TypeScript)
+- **Backend API:** Spring Boot (Java, REST, JPA)
+- **AI Feature:** Server-generated review summaries (cached and invalidated on review changes)
 
----
-
-## 📌 Project Overview
-
-The **Product Review Application** is a full-stack system that allows users to browse products, submit reviews, rate products, and view aggregated feedback through a modern mobile interface.  
-The project focuses on **core backend logic, REST API design, data modeling, and mobile UI/UX**, intentionally excluding authentication to keep the scope implementation-focused.
-
----
-
-## 🎯 Objectives
-
-- Build a scalable RESTful backend using **Spring Boot**
-- Develop a cross-platform mobile application using **React Native**
-- Allow users to:
-  - View products
-  - Submit reviews and ratings
-  - Browse existing reviews
-- Demonstrate clean architecture and separation of concerns
+The codebase is designed both as:
+- a real-world portfolio project
+- an intern onboarding learning system
+- a production-style architecture exercise (cache, pagination, release track)
 
 ---
 
-## 🧩 Core Features
+## Architecture (System View)
 
-### 🛒 Product Management
-- Retrieve a list of products
-- View product details:
-  - Name
-  - Description
-  - Category
-  - Price
-  - Average rating
-- Backend supports pagination and sorting
-
-### ⭐ Review & Rating System
-- Users can:
-  - Submit a text-based review
-  - Rate products on a numeric scale (e.g., 1–5)
-- Display:
-  - Average rating per product
-  - Total review count
-  - Review history
-
-### 📊 Aggregation & Insights
-- Backend calculates:
-  - Average ratings
-  - Review counts
-- Optimized for read-heavy access patterns
-
-### 📱 Mobile Experience (React Native)
-- Cross-platform support (iOS & Android)
-- Key screens:
-  - Product List
-  - Product Details
-  - Add Review
-- Reusable UI components
-- API-driven data rendering
-- Loading and error states handled gracefully
+```
+Mobile (Expo)
+  └─ calls REST API (Spring Boot)
+        ├─ Business Logic (Services)
+        ├─ Persistence (Repositories + DB)
+        └─ AI Summary Engine (cached)
+```
 
 ---
 
-## 🏗️ Architecture
+## Repository Structure
 
-### Backend (Spring Boot)
-- RESTful API architecture
-- Layered structure:
-  - Controller
-  - Service
-  - Repository
-- JPA / Hibernate for ORM
-- PostgreSQL (or H2 for local development)
-- DTO-based request/response models
-- Input validation (ratings range, review length, etc.)
-
-### Mobile App (React Native)
-- Functional components with hooks
-- API integration using `fetch` or `axios`
-- Local state management
-- Environment-based API configuration
+```
+.
+├── mobile/                 # React Native (Expo) app
+├── backend/                # Spring Boot REST API
+├── README.md               # This file (system overview)
+├── README_FRONTEND.md      # Detailed mobile architecture
+└── README_BACKEND.md       # Detailed backend architecture
+```
 
 ---
 
-## 🚫 Out of Scope
-- Authentication & authorization
-- User accounts or roles
-- Payments or checkout
-- Admin dashboards
+## End-to-End Data Flow (Critical)
+
+### 1) Product list (paginated, filter/sort/search)
+1. Mobile requests paginated list with filters/sort
+2. Backend returns `{items, page, pageSize, total, totalPages, hasNext}`
+3. Mobile caches results (server-state) and updates UI
+4. Filter/sort/search changes change the query key → new cache entry
+
+### 2) Product details + reviews + AI summary
+1. Mobile opens product detail screen
+2. Mobile requests:
+   - product details
+   - reviews (paginated)
+   - AI summary (cached on backend)
+3. Backend returns stable DTOs
+4. After a review is created:
+   - backend invalidates AI summary cache
+   - mobile invalidates related queries (details, reviews, list, summary)
 
 ---
 
-## 🧪 Testing & Quality
-- Unit tests for service and repository layers
-- Integration tests for REST endpoints
-- Validation and error handling
-- Consistent API response formats
+## Running Locally
+
+### Backend
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+### Mobile
+```bash
+cd mobile
+npm install
+npx expo start
+```
 
 ---
 
-## 💡 Why This Project
+## Environments & Release Track
 
-This project demonstrates:
-- Strong **Spring Boot backend fundamentals**
-- Clean **REST API design**
-- Practical **React Native mobile development**
-- Scalable architecture patterns used in real-world applications
+### Why environments matter
+- dev/staging/prod should not share credentials or base URLs
+- issues need observability to debug quickly
+
+### Recommended environment variables (Expo)
+- `EXPO_PUBLIC_API_BASE_URL` (dev/preview/prod)
+
+### Observability (recommended)
+- Add Sentry (or similar) for:
+  - runtime errors
+  - network failures
+  - navigation breadcrumbs
+
+---
+
+## Web Deployment (Expo Web) – Recommended Checklist
+1. Configure production base URL
+2. Build web output
+3. Deploy to a static host (e.g., Vercel)
+4. Smoke test:
+   - product list paging
+   - product details + reviews
+   - AI summary fetch
+   - wishlist + multi-select
+   - notifications
+
+---
+
+## Intern Learning Path (Start Here)
+1. Read `README_BACKEND.md` → understand API surface and caching
+2. Read `README_FRONTEND.md` → understand UI state vs server state separation
+3. Trace one request end-to-end:
+   - Product List → Product Controller → Product Service → Repository → DB
+4. Implement a small improvement using established patterns
+   - keep controllers thin
+   - keep server state cached & invalidated
+   - keep UI state in contexts
+
+---
+
+## Documentation
+- Mobile: `README_FRONTEND.md`
+- Backend: `README_BACKEND.md`
