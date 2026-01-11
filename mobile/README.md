@@ -424,6 +424,11 @@ Any new screen must:
 1. be added to `RootStackParamList`
 2. be registered in `App.tsx`
 
+### 9.4 Responsive Design
+- **Adaptability:** The UI must adapt to different screen sizes (Mobile vs Tablet vs Web).
+- **Layouts:** Use Flexbox and percentage-based dimensions where appropriate.
+- **Web Support:** Ensure components look good on desktop browsers (e.g., max-width containers, grid layouts).
+
 ---
 
 ## 10) Running the project (mobile)
