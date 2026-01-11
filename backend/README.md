@@ -1,4 +1,3 @@
-
 # Product Review Backend – Technical Architecture & Developer Guide
 
 ## Overview
