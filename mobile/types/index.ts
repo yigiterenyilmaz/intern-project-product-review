@@ -26,5 +26,6 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: string;
-  helpful: number;
+  helpfulCount?: number; // ✨ Updated from 'helpful' to 'helpfulCount' to match API
+  helpful?: number; // Keep for backward compatibility if needed
 }

@@ -140,35 +140,51 @@ const ProductDetailsContent: React.FC = () => {
   };
 
   const handleHelpfulPress = useCallback(async (reviewId: string) => {
+    const reviewIdStr = String(reviewId);
+    
     // Optimistic update
-    const isAlreadyHelpful = helpfulReviews.includes(reviewId);
+    const isAlreadyHelpful = helpfulReviews.includes(reviewIdStr);
     
+    // Toggle Logic
     if (isAlreadyHelpful) {
-      // If already voted, we don't support un-voting in UI yet (backend doesn't support it either)
-      return;
-    }
-
-    setHelpfulReviews(prev => [...prev, reviewId]);
-    
-    // Update review count locally
-    setReviews(prev => prev.map(r => 
-      r.id === reviewId 
-        ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } 
-        : r
-    ));
-
-    try {
-      await markReviewAsHelpful(reviewId);
-      console.log('Marked review as helpful:', reviewId);
-    } catch (error) {
-      console.error('Error marking review as helpful:', error);
-      // Revert on error
-      setHelpfulReviews(prev => prev.filter(id => id !== reviewId));
+      // Remove vote
+      setHelpfulReviews(prev => prev.filter(id => id !== reviewIdStr));
       setReviews(prev => prev.map(r => 
-        r.id === reviewId 
-          ? { ...r, helpfulCount: (r.helpfulCount || 0) - 1 } 
+        String(r.id) === reviewIdStr 
+          ? { ...r, helpfulCount: Math.max(0, (r.helpfulCount || 0) - 1) } 
           : r
       ));
+    } else {
+      // Add vote
+      setHelpfulReviews(prev => [...prev, reviewIdStr]);
+      setReviews(prev => prev.map(r => 
+        String(r.id) === reviewIdStr 
+          ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } 
+          : r
+      ));
+    }
+
+    try {
+      await markReviewAsHelpful(reviewIdStr);
+      console.log('Toggled review vote:', reviewIdStr);
+    } catch (error) {
+      console.error('Error toggling review vote:', error);
+      // Revert on error
+      if (isAlreadyHelpful) {
+        setHelpfulReviews(prev => [...prev, reviewIdStr]);
+        setReviews(prev => prev.map(r => 
+          String(r.id) === reviewIdStr 
+            ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } 
+            : r
+        ));
+      } else {
+        setHelpfulReviews(prev => prev.filter(id => id !== reviewIdStr));
+        setReviews(prev => prev.map(r => 
+          String(r.id) === reviewIdStr 
+            ? { ...r, helpfulCount: Math.max(0, (r.helpfulCount || 0) - 1) } 
+            : r
+        ));
+      }
     }
   }, [helpfulReviews]);
 
@@ -363,7 +379,7 @@ const ProductDetailsContent: React.FC = () => {
                   key={r.id}
                   review={r}
                   onHelpfulPress={handleHelpfulPress}
-                  isHelpful={helpfulReviews.includes(r.id)}
+                  isHelpful={helpfulReviews.includes(String(r.id))}
                 />
               ))}
             </View>

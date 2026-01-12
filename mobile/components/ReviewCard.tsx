@@ -29,6 +29,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onHelpfulPress, 
     day: 'numeric',
   });
 
+  // ✨ Use helpfulCount from API, fallback to helpful or 0
+  const helpfulCount = review.helpfulCount ?? review.helpful ?? 0;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Header */}
@@ -40,7 +43,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onHelpfulPress, 
           </View>
           <View>
             <Text style={[styles.userName, { color: colors.foreground }]}>
-              {review.userName}
+              {review.reviewerName || review.userName} 
             </Text>
             <Text style={[styles.date, { color: colors.mutedForeground }]}>
               {formattedDate}
@@ -70,7 +73,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onHelpfulPress, 
           styles.helpfulText, 
           { color: isHelpful ? colors.primary : colors.mutedForeground }
         ]}>
-          Helpful ({review.helpful})
+          Helpful ({helpfulCount})
         </Text>
       </TouchableOpacity>
     </View>
