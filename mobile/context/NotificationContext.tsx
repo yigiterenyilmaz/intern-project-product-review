@@ -1,6 +1,13 @@
 // Notification Context for local notification state management
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/api';
+import { 
+  getNotifications, 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead, 
+  createNotification,
+  deleteNotification,
+  deleteAllNotifications
+} from '../services/api';
 
 export type NotificationType = 'review' | 'order' | 'system';
 
@@ -39,14 +46,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const loadNotifications = async () => {
     try {
+      console.log('Loading notifications from backend...');
       const apiNotifications = await getNotifications();
-      const mapped: Notification[] = apiNotifications.map(n => ({
+      console.log('Loaded notifications:', apiNotifications);
+      
+      const mapped: Notification[] = apiNotifications.map((n: any) => ({
         id: String(n.id),
         type: 'system', // Default type as backend doesn't store type yet
         title: n.title,
         body: n.message,
         timestamp: new Date(n.createdAt),
-        isRead: n.isRead,
+        // ✨ Fix: Check both 'isRead' and 'read' properties due to JSON serialization
+        isRead: n.isRead !== undefined ? n.isRead : n.read,
         data: n.productId ? { productId: String(n.productId) } : undefined
       }));
       setNotifications(mapped);
@@ -60,16 +71,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const addNotification = useCallback(
     (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
       // Optimistic update
+      const tempId = `local-${Date.now()}`;
       const newNotification: Notification = {
         ...notification,
-        id: `local-${Date.now()}`,
+        id: tempId,
         timestamp: new Date(),
         isRead: false,
       };
       setNotifications((prev) => [newNotification, ...prev]);
       
-      // Note: We don't have an API to create notifications from client yet
-      // (Usually notifications are created by backend events)
+      // Sync with Backend
+      const productId = notification.data?.productId ? Number(notification.data.productId) : undefined;
+      createNotification(notification.title, notification.body, productId)
+        .then(() => {
+          console.log('Notification saved to backend, reloading...');
+          // ✨ Reload to get real IDs from backend
+          loadNotifications();
+        })
+        .catch(e => console.error("Backend sync failed", e));
     },
     []
   );
@@ -95,13 +114,29 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const clearNotification = useCallback((id: string) => {
+    console.log("Attempting to delete notification:", id);
+    
+    // Optimistic update
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-    // No delete API yet
+    
+    // Sync with Backend
+    if (!id.startsWith('local-')) {
+      console.log("Sending DELETE request to backend for ID:", id);
+      deleteNotification(Number(id))
+        .then(() => console.log("Successfully deleted notification from backend"))
+        .catch(e => console.error("Backend delete failed", e));
+    } else {
+      console.warn('Cannot delete local-only notification from backend yet (wait for sync). ID:', id);
+    }
   }, []);
 
   const clearAll = useCallback(() => {
+    console.log("Clearing all notifications");
+    // Optimistic update
     setNotifications([]);
-    // No delete all API yet
+    
+    // Sync with Backend
+    deleteAllNotifications().catch(e => console.error("Backend sync failed", e));
   }, []);
 
   return (

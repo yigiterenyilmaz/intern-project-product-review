@@ -58,7 +58,6 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
     
-    // Test endpoint to create a notification manually
     @PostMapping("/notifications")
     public ResponseEntity<Void> createNotification(
             @RequestHeader("X-User-ID") String userId,
@@ -69,6 +68,19 @@ public class UserController {
         Long productId = payload.get("productId") != null ? ((Number) payload.get("productId")).longValue() : null;
         
         userService.createNotification(userId, title, message, productId);
+        return ResponseEntity.ok().build();
+    }
+    
+    // ✨ New Delete Endpoints
+    @DeleteMapping("/notifications/{id}")
+    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
+        userService.deleteNotification(id);
+        return ResponseEntity.ok().build();
+    }
+    
+    @DeleteMapping("/notifications")
+    public ResponseEntity<Void> deleteAllNotifications(@RequestHeader("X-User-ID") String userId) {
+        userService.deleteAllNotifications(userId);
         return ResponseEntity.ok().build();
     }
 }
