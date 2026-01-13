@@ -9,9 +9,10 @@ import { ProductDetailsScreen } from './screens/ProductDetailsScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { NotificationDetailScreen } from './screens/NotificationDetailScreen';
 import { WishlistScreen } from './screens/WishlistScreen';
-import { AIAssistantScreen } from './screens/AIAssistantScreen'; // Imported AIAssistantScreen
+import { AIAssistantScreen } from './screens/AIAssistantScreen';
 import { NotificationProvider } from './context/NotificationContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { SearchProvider } from './context/SearchContext'; // ✨ Import SearchProvider
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { RootStackParamList } from './types';
@@ -82,9 +83,11 @@ export default function App() {
       <ThemeProvider>
         <NotificationProvider>
           <WishlistProvider>
-            <ToastProvider>
-              <AppNavigator />
-            </ToastProvider>
+            <SearchProvider> 
+              <ToastProvider>
+                <AppNavigator />
+              </ToastProvider>
+            </SearchProvider>
           </WishlistProvider>
         </NotificationProvider>
       </ThemeProvider>
