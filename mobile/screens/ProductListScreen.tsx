@@ -31,10 +31,12 @@ import { CategoryFilter } from '../components/CategoryFilter';
 import { SortFilter } from '../components/SortFilter';
 import { SearchBar } from '../components/SearchBar';
 import { LoadMoreCard } from '../components/LoadMoreCard';
+import { OfflineBanner } from '../components/OfflineBanner'; // ✨ Added
 import { useNotifications } from '../context/NotificationContext';
 import { useWishlist, WishlistItem } from '../context/WishlistContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSearch } from '../context/SearchContext';
+import { useNetwork } from '../context/NetworkContext'; // ✨ Added
 
 import { RootStackParamList } from '../types';
 import { Spacing, FontSize, FontWeight, BorderRadius } from '../constants/theme';
@@ -46,9 +48,13 @@ export const ProductListScreen: React.FC = () => {
   const { unreadCount } = useNotifications();
   const { wishlistCount } = useWishlist();
   const { addSearchTerm, searchHistory } = useSearch();
+  const { isConnected, isInternetReachable, checkConnection } = useNetwork(); // ✨ Added
 
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
+
+  // ✨ Check if offline
+  const isOffline = !isConnected || isInternetReachable === false;
 
   // ✨ Refs to prevent double fetching
   const isFetchingRef = useRef(false);
@@ -215,8 +221,16 @@ export const ProductListScreen: React.FC = () => {
     setIsSelectionMode(false);
   };
 
-  // ✨ Optimized fetchProducts with duplicate request prevention
+  // ✨ Optimized fetchProducts with duplicate request prevention and offline check
   const fetchProducts = useCallback(async (pageNum: number = 0, append: boolean = false) => {
+    // ✨ Check if offline - show error and return early
+    if (isOffline) {
+      setError('No internet connection. Please check your network.');
+      setLoading(false);
+      setLoadingMore(false);
+      return;
+    }
+
     // Create a unique key for this request
     const fetchKey = `${pageNum}-${selectedCategory}-${sortBy}-${debouncedSearchQuery}-${append}`;
     
@@ -243,7 +257,7 @@ export const ProductListScreen: React.FC = () => {
       } else {
         setLoadingMore(true);
       }
-      setError(null);
+      setError(null); // ✨ Clear previous errors
 
       const page = await getProducts({ 
         page: pageNum, 
@@ -269,13 +283,19 @@ export const ProductListScreen: React.FC = () => {
       
     } catch (e: any) {
       console.error('Fetch error:', e);
-      setError(e?.message ?? 'API error');
+      // ✨ Better error messages based on error type
+      const errorMessage = e?.message?.toLowerCase() || '';
+      if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+        setError('No internet connection. Please check your network.');
+      } else {
+        setError(e?.message ?? 'Failed to load products');
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
       isFetchingRef.current = false;
     }
-  }, [selectedCategory, sortBy, debouncedSearchQuery]);
+  }, [selectedCategory, sortBy, debouncedSearchQuery, isOffline]);
 
   // ✨ Single useEffect for fetching - replaces both useEffect and useFocusEffect
   // ✨ Wait for sort preference to load before fetching
@@ -296,6 +316,26 @@ export const ProductListScreen: React.FC = () => {
     fetchProducts(0, false);
   }, [selectedCategory, sortBy, debouncedSearchQuery, sortLoaded]);
 
+  // ✨ Refetch when connection is restored
+  useEffect(() => {
+    if (!isOffline && error?.includes('internet')) {
+      console.log('Connection restored, refetching...');
+      setError(null);
+      lastFetchParamsRef.current = ''; // Reset to force refetch
+      fetchProducts(0, false);
+    }
+  }, [isOffline]);
+
+  // ✨ Handle retry button press
+  const handleRetry = useCallback(async () => {
+    const connected = await checkConnection();
+    if (connected) {
+      setError(null);
+      lastFetchParamsRef.current = ''; // Reset to force refetch
+      fetchProducts(0, false);
+    }
+  }, [checkConnection, fetchProducts]);
+
   // ✨ useFocusEffect only for refetch when returning to screen (optional refresh)
   useFocusEffect(
     useCallback(() => {
@@ -311,10 +351,12 @@ export const ProductListScreen: React.FC = () => {
   );
 
   const loadMoreProducts = useCallback(() => {
+    // ✨ Don't load more if offline
+    if (isOffline) return;
     if (!loadingMore && hasMore && !loading && !isFetchingRef.current) {
       fetchProducts(currentPage + 1, true);
     }
-  }, [loadingMore, hasMore, loading, currentPage, fetchProducts]);
+  }, [loadingMore, hasMore, loading, currentPage, fetchProducts, isOffline]);
 
   const filteredProducts = apiProducts;
 
@@ -475,12 +517,50 @@ export const ProductListScreen: React.FC = () => {
       </View>
 
       {loading && <ActivityIndicator style={{ marginTop: 16 }} />}
-      {error && <Text style={{ color: colors.destructive, padding: Spacing.lg }}>{error}</Text>}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={24} color={colors.destructive} />
+          <Text style={{ color: colors.destructive, marginLeft: Spacing.sm, flex: 1 }}>{error}</Text>
+          {isOffline && (
+            <TouchableOpacity onPress={handleRetry} style={styles.retryTextButton}>
+              <Text style={{ color: colors.primary, fontWeight: FontWeight.semibold }}>Retry</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
+  );
+
+  // ✨ Empty state for offline with no cached data
+  const renderOfflineEmpty = () => (
+    <View style={styles.offlineEmptyContainer}>
+      <View style={[styles.offlineIconContainer, { backgroundColor: colors.muted }]}>
+        <Ionicons name="cloud-offline-outline" size={64} color={colors.mutedForeground} />
+      </View>
+      <Text style={[styles.offlineTitle, { color: colors.foreground }]}>
+        You're Offline
+      </Text>
+      <Text style={[styles.offlineSubtitle, { color: colors.mutedForeground }]}>
+        Please check your internet connection to browse products
+      </Text>
+      <TouchableOpacity
+        style={[styles.offlineRetryButton, { backgroundColor: colors.primary }]}
+        onPress={handleRetry}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="refresh" size={18} color={colors.primaryForeground} />
+        <Text style={[styles.offlineRetryText, { color: colors.primaryForeground }]}>
+          Try Again
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <ScreenWrapper backgroundColor={colors.background}>
+      {/* ✨ Offline Banner */}
+      <OfflineBanner onRetry={handleRetry} />
+      
       <TouchableWithoutFeedback onPress={() => {
         if (isSelectionMode && selectedItems.size > 0) {
           handleCancelSelection();
@@ -550,9 +630,13 @@ export const ProductListScreen: React.FC = () => {
             
             ListEmptyComponent={
               !loading ? (
-                <View style={{ padding: Spacing.xl, zIndex: -1 }}>
-                  <Text style={{ color: colors.mutedForeground }}>No products found.</Text>
-                </View>
+                isOffline && apiProducts.length === 0 ? (
+                  renderOfflineEmpty()
+                ) : (
+                  <View style={{ padding: Spacing.xl, zIndex: -1 }}>
+                    <Text style={{ color: colors.mutedForeground }}>No products found.</Text>
+                  </View>
+                )
               ) : null
             }
           />
@@ -776,6 +860,67 @@ const styles = StyleSheet.create({
   },
   floatingButtonText: {
     fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+  },
+
+  // ✨ Error container styles
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: BorderRadius.lg,
+  },
+
+  retryTextButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+
+  // ✨ Offline empty state styles
+  offlineEmptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing['2xl'],
+    paddingVertical: Spacing['3xl'],
+    gap: Spacing.md,
+  },
+
+  offlineIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+
+  offlineTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+  },
+
+  offlineSubtitle: {
+    fontSize: FontSize.base,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+
+  offlineRetryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+  },
+
+  offlineRetryText: {
+    fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
   },
 });

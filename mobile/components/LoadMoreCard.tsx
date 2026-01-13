@@ -32,19 +32,28 @@ export const LoadMoreCard: React.FC<LoadMoreCardProps> = ({
 
   if (!hasMore) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.card }]}>
+      <View
+        style={[
+          styles.container,
+          styles.endContainer,
+          { backgroundColor: colors.card },
+        ]}
+      >
         <View style={[styles.endIconContainer, { backgroundColor: colors.muted }]}>
           <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
         </View>
+
         <Text style={[styles.endText, { color: colors.mutedForeground }]}>
           You've reached the end
         </Text>
-        <Text style={[styles.pageInfo, { color: colors.mutedForeground }]}>
+
+        <Text style={[styles.endSubtext, { color: colors.mutedForeground }]}>
           Showing all products
         </Text>
       </View>
     );
   }
+
 
   return (
     <TouchableOpacity
@@ -93,7 +102,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Shadow.soft,
   },
-  
+
   gradientCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,5 +152,16 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
     textAlign: 'center',
+  },
+  endContainer: {
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+  },
+  endSubtext: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
   },
 });

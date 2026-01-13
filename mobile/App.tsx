@@ -1,4 +1,4 @@
-// React Native App Entry Point with SafeAreaProvider, Notifications, Toast, Wishlist, Theme, and Linking
+// React Native App Entry Point with SafeAreaProvider, Notifications, Toast, Wishlist, Theme, Network, and Linking
 import React from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -16,6 +16,7 @@ import { WishlistProvider } from './context/WishlistContext';
 import { SearchProvider } from './context/SearchContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { NetworkProvider } from './context/NetworkContext'; // ✨ Added
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -56,7 +57,7 @@ function AppNavigator() {
   return (
     <NavigationContainer 
       theme={navigationTheme} 
-      linking={linking} // ✨ Added linking
+      linking={linking}
     >
       <Stack.Navigator
         initialRouteName="ProductList"
@@ -99,15 +100,18 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <NotificationProvider>
-          <WishlistProvider>
-            <SearchProvider> 
-              <ToastProvider>
-                <AppNavigator />
-              </ToastProvider>
-            </SearchProvider>
-          </WishlistProvider>
-        </NotificationProvider>
+        {/* ✨ NetworkProvider added - must be inside ThemeProvider for colors */}
+        <NetworkProvider>
+          <NotificationProvider>
+            <WishlistProvider>
+              <SearchProvider> 
+                <ToastProvider>
+                  <AppNavigator />
+                </ToastProvider>
+              </SearchProvider>
+            </WishlistProvider>
+          </NotificationProvider>
+        </NetworkProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
