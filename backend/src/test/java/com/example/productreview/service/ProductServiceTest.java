@@ -19,7 +19,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,17 +50,18 @@ public class ProductServiceTest {
 
     @BeforeEach
     void setUp() {
+        Set<String> categories = new HashSet<>(Arrays.asList("Category"));
         product = new Product();
         product.setId(1L);
         product.setName("Test Product");
         product.setDescription("Description");
-        product.setCategory("Category");
+        product.setCategories(categories); // ✨ Updated
         product.setPrice(100.0);
         product.setImageUrl("http://example.com/image.jpg");
         product.setAverageRating(0.0);
         product.setReviewCount(0);
 
-        productDTO = new ProductDTO(1L, "Test Product", "Description", "Category", 100.0, "http://example.com/image.jpg", 0.0, 0, null, null);
+        productDTO = new ProductDTO(1L, "Test Product", "Description", categories, 100.0, "http://example.com/image.jpg", 0.0, 0, null, null);
     }
 
     @Test
@@ -67,7 +70,6 @@ public class ProductServiceTest {
         Page<Product> productPage = new PageImpl<>(Arrays.asList(product));
         when(productRepository.findAll(pageable)).thenReturn(productPage);
 
-        // ✨ Updated: Added null for search parameter
         Page<ProductDTO> result = productService.getAllProducts(null, null, pageable);
 
         assertNotNull(result);
@@ -80,7 +82,7 @@ public class ProductServiceTest {
     void getProductDTOById_ShouldReturnDTO() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(reviewRepository.findRatingCountsByProductId(1L)).thenReturn(new ArrayList<>());
-        when(reviewRepository.findByProductId(1L)).thenReturn(new ArrayList<>()); // For AI summary check
+        when(reviewRepository.findByProductId(1L)).thenReturn(new ArrayList<>());
 
         ProductDTO result = productService.getProductDTOById(1L);
 

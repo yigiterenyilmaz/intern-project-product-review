@@ -10,6 +10,7 @@ import com.example.productreview.repository.ReviewRepository;
 import com.example.productreview.repository.ReviewVoteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -48,23 +49,28 @@ public class ProductServiceImpl implements ProductService {
         
         log.info("Service getAllProducts: hasCategory={}, hasSearch={}, search='{}'", hasCategory, hasSearch, search);
 
+        Page<Product> products;
+
         if (hasCategory && hasSearch) {
             log.info("Searching by Category AND Name");
-            return productRepository.findByCategoryAndNameContainingIgnoreCase(category, search, pageable)
-                    .map(this::convertToProductDTO);
+            products = productRepository.findByCategoryAndNameContainingIgnoreCase(category, search, pageable);
         } else if (hasCategory) {
             log.info("Searching by Category");
-            return productRepository.findByCategory(category, pageable)
-                    .map(this::convertToProductDTO);
+            products = productRepository.findByCategory(category, pageable);
         } else if (hasSearch) {
             log.info("Searching by Name");
-            return productRepository.findByNameContainingIgnoreCase(search, pageable)
-                    .map(this::convertToProductDTO);
+            products = productRepository.findByNameContainingIgnoreCase(search, pageable);
         } else {
             log.info("Returning ALL products");
-            return productRepository.findAll(pageable)
-                    .map(this::convertToProductDTO);
+            products = productRepository.findAll(pageable);
         }
+        
+        // ✨ Log categories for debugging
+        products.getContent().forEach(p -> 
+            log.info("Product: {}, Categories: {}", p.getName(), p.getCategories())
+        );
+        
+        return products.map(this::convertToProductDTO);
     }
 
     @Override
@@ -118,12 +124,17 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<ReviewDTO> getReviewsByProductId(Long productId, Integer rating, Pageable pageable) {
-        return reviewRepository.findByProductIdAndRating(productId, rating, pageable)
+        if (rating != null) {
+            return reviewRepository.findByProductIdAndRating(productId, rating, pageable)
+                    .map(this::convertToReviewDTO);
+        }
+        return reviewRepository.findByProductId(productId, pageable)
                 .map(this::convertToReviewDTO);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "aiSummaries", key = "#productId")
     public ReviewDTO addReview(Long productId, ReviewDTO reviewDTO) {
         Product product = getProductById(productId);
 
@@ -213,7 +224,7 @@ public class ProductServiceImpl implements ProductService {
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
-                product.getCategory(),
+                product.getCategories(),
                 product.getPrice(),
                 product.getImageUrl(),
                 product.getAverageRating(),

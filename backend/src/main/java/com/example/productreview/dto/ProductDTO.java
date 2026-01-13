@@ -1,12 +1,13 @@
 package com.example.productreview.dto;
 
 import java.util.Map;
+import java.util.Set;
 
 public class ProductDTO {
     private Long id;
     private String name;
     private String description;
-    private String category;
+    private Set<String> categories; // ✨ Changed from String to Set<String>
     private Double price;
     private String imageUrl;
     private Double averageRating;
@@ -17,11 +18,11 @@ public class ProductDTO {
     public ProductDTO() {
     }
 
-    public ProductDTO(Long id, String name, String description, String category, Double price, String imageUrl, Double averageRating, Integer reviewCount, Map<Integer, Long> ratingBreakdown, String aiSummary) {
+    public ProductDTO(Long id, String name, String description, Set<String> categories, Double price, String imageUrl, Double averageRating, Integer reviewCount, Map<Integer, Long> ratingBreakdown, String aiSummary) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.category = category;
+        this.categories = categories;
         this.price = price;
         this.imageUrl = imageUrl;
         this.averageRating = averageRating;
@@ -54,12 +55,12 @@ public class ProductDTO {
         this.description = description;
     }
 
-    public String getCategory() {
-        return category;
+    public Set<String> getCategories() {
+        return categories;
     }
 
-    public void setCategory(String category) {
-        this.category = category;
+    public void setCategories(Set<String> categories) {
+        this.categories = categories;
     }
 
     public Double getPrice() {

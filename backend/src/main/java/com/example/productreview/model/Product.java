@@ -6,7 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "products")
@@ -21,8 +23,10 @@ public class Product {
     @NotBlank(message = "Product description is required")
     private String description;
 
-    @NotBlank(message = "Product category is required")
-    private String category;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_categories", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "category")
+    private Set<String> categories = new HashSet<>(); // ✨ Changed from String to Set<String>
 
     @NotNull(message = "Product price is required")
     @PositiveOrZero(message = "Price must be positive or zero")
@@ -39,11 +43,11 @@ public class Product {
     public Product() {
     }
 
-    public Product(Long id, String name, String description, String category, Double price, String imageUrl, Double averageRating, Integer reviewCount, List<Review> reviews) {
+    public Product(Long id, String name, String description, Set<String> categories, Double price, String imageUrl, Double averageRating, Integer reviewCount, List<Review> reviews) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.category = category;
+        this.categories = categories;
         this.price = price;
         this.imageUrl = imageUrl;
         this.averageRating = averageRating;
@@ -75,12 +79,12 @@ public class Product {
         this.description = description;
     }
 
-    public String getCategory() {
-        return category;
+    public Set<String> getCategories() {
+        return categories;
     }
 
-    public void setCategory(String category) {
-        this.category = category;
+    public void setCategories(Set<String> categories) {
+        this.categories = categories;
     }
 
     public Double getPrice() {

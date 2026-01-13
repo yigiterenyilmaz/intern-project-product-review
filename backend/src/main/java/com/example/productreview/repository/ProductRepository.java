@@ -10,13 +10,15 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    Page<Product> findByCategory(String category, Pageable pageable);
     
-    // ✨ Custom Query for Search (Case Insensitive)
+    // ✨ Using MEMBER OF for cleaner collection search
+    @Query("SELECT p FROM Product p WHERE :category MEMBER OF p.categories")
+    Page<Product> findByCategory(@Param("category") String category, Pageable pageable);
+    
     @Query("SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))")
     Page<Product> findByNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
     
-    // ✨ Custom Query for Category + Search
-    @Query("SELECT p FROM Product p WHERE p.category = :category AND LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    // ✨ Using MEMBER OF with Name search
+    @Query("SELECT p FROM Product p WHERE :category MEMBER OF p.categories AND LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))")
     Page<Product> findByCategoryAndNameContainingIgnoreCase(@Param("category") String category, @Param("name") String name, Pageable pageable);
 }
