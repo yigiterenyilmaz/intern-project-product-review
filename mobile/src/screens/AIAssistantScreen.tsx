@@ -263,7 +263,7 @@ export const AIAssistantScreen: React.FC = () => {
 
           setTimeout(() => {
             navigation.goBack();
-          }, 1500);
+          }, 3000); // ✨ Increased from 1500ms to 3000ms
         }, 300);
       } else {
         // Yes → show next questions
