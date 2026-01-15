@@ -3,7 +3,7 @@
 // ✨ Added: Sort preference persistence with AsyncStorage
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getProducts, ApiProduct } from '../services/api';
+import { getProducts, getGlobalStats, ApiProduct, GlobalStats } from '../services/api';
 import { TouchableWithoutFeedback } from 'react-native';
 
 const SORT_STORAGE_KEY = 'user_sort_preference';
@@ -104,6 +104,9 @@ export const ProductListScreen = () => {
   const [sortBy, setSortBy] = useState('name,asc');
   const [sortLoaded, setSortLoaded] = useState(false);
 
+  // ✨ NEW: Global stats from backend
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+
   const filteredProducts = apiProducts;
 
   const loadSortPreference = useCallback(async () => {
@@ -118,6 +121,22 @@ export const ProductListScreen = () => {
   useEffect(() => {
     loadSortPreference();
   }, [loadSortPreference]);
+
+  // ✨ NEW: Fetch global stats from backend (updates on filter changes)
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const stats = await getGlobalStats({
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
+          search: submittedSearchQuery?.trim() || undefined,
+        });
+        setGlobalStats(stats);
+      } catch (err) {
+        console.error('Failed to fetch global stats:', err);
+      }
+    };
+    fetchStats();
+  }, [selectedCategory, submittedSearchQuery]);
 
   const toggleGridMode = () => {
     gridTouchedRef.current = true;
@@ -284,14 +303,22 @@ export const ProductListScreen = () => {
   };
 
   const stats = useMemo(() => {
-    // Calculate aggregate stats from loaded products
+    // ✨ Use global stats from backend if available
+    if (globalStats) {
+      return {
+        productCount: globalStats.totalProducts,
+        totalReviews: globalStats.totalReviews,
+        avgRating: globalStats.averageRating,
+      };
+    }
+    // Fallback: Calculate from loaded products (only used before backend responds)
     const productCount = totalElements;
     const totalReviews = apiProducts.reduce((sum, p) => sum + ((p as any)?.reviewCount || 0), 0);
     const avgRating = apiProducts.length > 0 
       ? apiProducts.reduce((sum, p) => sum + ((p as any)?.averageRating || 0), 0) / apiProducts.length
       : 0;
     return { productCount, totalReviews, avgRating };
-  }, [totalElements, apiProducts]);
+  }, [globalStats, totalElements, apiProducts]);
 
   const handleSearchSubmit = (search: string) => {
     if (search.trim().length > 0) {
@@ -559,12 +586,7 @@ export const ProductListScreen = () => {
               key={numColumns}
               numColumns={numColumns}
               columnWrapperStyle={
-                numColumns > 1
-                  ? [
-                    styles.columnWrap,
-                    { justifyContent: 'flex-start' }, // Space-between yerine start
-                  ]
-                  : undefined
+                numColumns > 1 ? styles.columnWrap : undefined
               }
               removeClippedSubviews={false}
               keyExtractor={(item: any) => String(item?.id ?? '')}
@@ -574,30 +596,39 @@ export const ProductListScreen = () => {
                 isWeb && { maxWidth: containerMaxWidth },
                 !isWeb && { paddingHorizontal: Spacing.lg }, // Mobile padding
               ]}
-              renderItem={({ item }) => (
-                <View
-                  style={[
-                    numColumns > 1 && styles.gridItem,
-                    numColumns > 1 && {
-                      flex: 1,
-                      minWidth: 0,
-                    },
-                    numColumns === 1 && { 
-                      width: '100%',
-                    },
-                  ]}
-                  collapsable={false}
-                >
-                  <SelectableProductCard
-                    product={item}
-                    numColumns={numColumns}
-                    isSelectionMode={isSelectionMode}
-                    isSelected={selectedItems.has(String((item as any)?.id ?? ''))}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                  />
-                </View>
-              )}
+              renderItem={({ item, index }) => {
+                const isGrid = numColumns > 1;
+                const gapSize = Platform.OS === 'android' ? Spacing.md : Spacing.lg;
+                
+                return (
+                  <View
+                    style={[
+                      isGrid && {
+                        width: `${100 / numColumns}%`,
+                        paddingRight: index % numColumns === numColumns - 1 ? 0 : gapSize / 2,
+                        paddingLeft: index % numColumns === 0 ? 0 : gapSize / 2,
+                        marginBottom: Spacing.lg,
+                        flexGrow: 0,
+                        flexShrink: 0,
+                      },
+                      !isGrid && {
+                        width: '100%',
+                        marginBottom: Spacing.lg,
+                      },
+                    ]}
+                    collapsable={false}
+                  >
+                    <SelectableProductCard
+                      product={item}
+                      numColumns={numColumns}
+                      isSelectionMode={isSelectionMode}
+                      isSelected={selectedItems.has(String((item as any)?.id ?? ''))}
+                      onPress={handleCardPress}
+                      onLongPress={handleCardLongPress}
+                    />
+                  </View>
+                );
+              }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
@@ -912,10 +943,8 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
   },
   columnWrap: {
-    paddingHorizontal: 0,
+    flexDirection: 'row',
     justifyContent: 'flex-start',
-    columnGap: Platform.OS === 'android' ? Spacing.md : Spacing.lg,
-    gap: Platform.OS === 'android' ? Spacing.md : Spacing.lg,
   },
   emptyContainer: {
     flex: 1,

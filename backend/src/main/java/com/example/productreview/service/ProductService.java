@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ProductService {
     // Updated to accept search query
@@ -27,4 +28,7 @@ public interface ProductService {
     List<Long> getUserVotedReviewIds(String userId);
 
     String chatAboutProduct(Long productId, String question);
+    
+    // ✨ NEW: Get global statistics for hero section (supports filtering)
+    Map<String, Object> getGlobalStats(String category, String search);
 }

@@ -29,9 +29,17 @@ public class ProductController {
         this.productService = productService;
     }
 
+    // ✨ NEW: Global stats endpoint for hero section (supports filtering)
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getGlobalStats(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(productService.getGlobalStats(category, search));
+    }
+
     @GetMapping
     public ResponseEntity<Page<ProductDTO>> getAllProducts(
-            @RequestParam(required = false) String category, // ✨ Keep as String for request param
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

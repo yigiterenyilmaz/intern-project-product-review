@@ -65,6 +65,13 @@ export type ApiNotification = {
   productId?: number;
 };
 
+// ✨ NEW: Global stats type
+export type GlobalStats = {
+  totalProducts: number;
+  totalReviews: number;
+  averageRating: number;
+};
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const userId = await getUserId();
   
@@ -82,6 +89,26 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   
   const text = await res.text();
   return text ? JSON.parse(text) : {} as T;
+}
+
+// ✨ NEW: Get global stats for hero section (supports filtering)
+export function getGlobalStats(params?: { category?: string; search?: string }) {
+  const q = new URLSearchParams();
+  
+  if (params?.category && params.category !== 'All') {
+    q.append('category', params.category);
+  }
+  
+  if (params?.search) {
+    q.append('search', params.search);
+  }
+  
+  const queryString = q.toString();
+  const url = queryString 
+    ? `${BASE_URL}/api/products/stats?${queryString}` 
+    : `${BASE_URL}/api/products/stats`;
+    
+  return request<GlobalStats>(url);
 }
 
 export function getProducts(params?: { page?: number; size?: number; sort?: string; category?: string; search?: string }) {

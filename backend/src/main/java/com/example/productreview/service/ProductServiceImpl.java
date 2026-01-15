@@ -193,6 +193,60 @@ public class ProductServiceImpl implements ProductService {
         List<Review> reviews = reviewRepository.findByProductId(productId);
         return aiSummaryService.chatWithReviews(productId, question, reviews);
     }
+    
+    // ✨ NEW: Get global statistics from database (supports filtering)
+    @Override
+    public Map<String, Object> getGlobalStats(String category, String search) {
+        boolean hasCategory = category != null && !category.isEmpty() && !category.equalsIgnoreCase("All");
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+        
+        List<Product> products;
+        
+        // Get filtered products
+        if (hasCategory && hasSearch) {
+            products = productRepository.findAll().stream()
+                    .filter(p -> p.getCategories() != null && p.getCategories().contains(category))
+                    .filter(p -> p.getName().toLowerCase().contains(search.toLowerCase()))
+                    .collect(Collectors.toList());
+        } else if (hasCategory) {
+            products = productRepository.findAll().stream()
+                    .filter(p -> p.getCategories() != null && p.getCategories().contains(category))
+                    .collect(Collectors.toList());
+        } else if (hasSearch) {
+            products = productRepository.findAll().stream()
+                    .filter(p -> p.getName().toLowerCase().contains(search.toLowerCase()))
+                    .collect(Collectors.toList());
+        } else {
+            products = productRepository.findAll();
+        }
+        
+        long totalProducts = products.size();
+        
+        // Sum of all review counts from filtered products
+        long totalReviews = products.stream()
+                .mapToLong(p -> p.getReviewCount() != null ? p.getReviewCount() : 0)
+                .sum();
+        
+        // Calculate average rating across filtered products
+        Double avgRating = products.stream()
+                .filter(p -> p.getAverageRating() != null && p.getAverageRating() > 0)
+                .mapToDouble(Product::getAverageRating)
+                .average()
+                .orElse(0.0);
+        
+        // Round to 1 decimal place
+        avgRating = Math.round(avgRating * 10.0) / 10.0;
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalProducts", totalProducts);
+        stats.put("totalReviews", totalReviews);
+        stats.put("averageRating", avgRating);
+        
+        log.info("Filtered stats (category={}, search={}): products={}, reviews={}, avgRating={}", 
+                category, search, totalProducts, totalReviews, avgRating);
+        
+        return stats;
+    }
 
     private void updateProductStats(Product product) {
         List<Review> reviews = reviewRepository.findByProductId(product.getId());
