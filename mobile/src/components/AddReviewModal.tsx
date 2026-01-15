@@ -1,5 +1,6 @@
 // React Native AddReviewModal Component
 // Modal for submitting reviews (toast validation must be visible INSIDE the modal)
+// ✨ Updated: Responsive design for Web
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -12,11 +13,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StarRating } from './StarRating';
 import { Button } from './Button';
-import { Colors, Spacing, FontSize, BorderRadius, FontWeight } from '../constants/theme';
+import { Colors, Spacing, FontSize, BorderRadius, FontWeight, Shadow } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 
 // ✅ IMPORTANT: ToastProvider MUST be inside <Modal> to render in the same native layer.
@@ -36,13 +39,20 @@ const MAX_REVIEW_LEN = 500;
 const MIN_NAME_LEN = 2; // applied only if name is provided
 const MAX_NAME_LEN = 50;
 
-const AddReviewModalContent: React.FC<Omit<AddReviewModalProps, 'visible'>> = ({
+const AddReviewModalContent: React.FC<Omit<AddReviewModalProps, 'visible'> & { onBackdropPress?: () => void }> = ({
   onClose,
   productName,
   onSubmit,
+  onBackdropPress,
 }) => {
   const { colors } = useTheme();
   const { showToast } = useToast();
+  const { width } = useWindowDimensions();
+  
+  // ✨ Responsive breakpoints
+  const isWeb = Platform.OS === 'web';
+  const isNarrow = width < 600;
+  const maxFormWidth = isWeb ? 520 : undefined;
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -131,6 +141,105 @@ const AddReviewModalContent: React.FC<Omit<AddReviewModalProps, 'visible'>> = ({
     onClose();
   };
 
+  // ✨ Web: Centered card layout with backdrop
+  if (isWeb) {
+    return (
+      <Pressable 
+        style={styles.webBackdrop} 
+        onPress={onBackdropPress}
+      >
+        <Pressable 
+          style={[
+            styles.webCard, 
+            { 
+              backgroundColor: colors.card,
+              maxWidth: maxFormWidth,
+              width: isNarrow ? '95%' : '90%',
+            }
+          ]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.webScrollContent}
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.title, { color: colors.foreground }]}>Write a Review</Text>
+                <Text style={[styles.subtitle, { color: colors.mutedForeground }]} numberOfLines={1}>
+                  {productName}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleClose}
+                style={[styles.closeButton, { backgroundColor: colors.secondary }]}
+              >
+                <Ionicons name="close" size={20} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Form */}
+            <View style={styles.formWeb}>
+              {/* Rating */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Your Rating</Text>
+                <StarRating rating={rating} size="lg" interactive onRatingChange={setRating} />
+              </View>
+
+              {/* Name */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Your Name (optional)</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.secondary, color: colors.foreground }]}
+                  value={userName}
+                  onChangeText={setUserName}
+                  placeholder="Enter your name"
+                  placeholderTextColor={colors.mutedForeground}
+                  maxLength={MAX_NAME_LEN}
+                />
+                <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
+                  {nameLen}/{MAX_NAME_LEN}
+                </Text>
+              </View>
+
+              {/* Comment */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Your Review</Text>
+                <TextInput
+                  style={[styles.textArea, { backgroundColor: colors.secondary, color: colors.foreground }]}
+                  value={comment}
+                  onChangeText={setComment}
+                  placeholder="Share your experience with this product..."
+                  placeholderTextColor={colors.mutedForeground}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  maxLength={MAX_REVIEW_LEN + 50}
+                />
+                <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
+                  Minimum {MIN_REVIEW_LEN} characters ({commentLen}/{MAX_REVIEW_LEN})
+                </Text>
+              </View>
+
+              {/* Buttons */}
+              <View style={styles.webButtons}>
+                <Button onPress={handleClose} variant="outline" style={styles.webButton}>
+                  Cancel
+                </Button>
+                <Button onPress={handleSubmit} variant="premium" loading={isSubmitting} style={styles.webButton}>
+                  Submit Review
+                </Button>
+              </View>
+            </View>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    );
+  }
+
+  // ✨ Mobile: Full screen layout (original)
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -188,7 +297,7 @@ const AddReviewModalContent: React.FC<Omit<AddReviewModalProps, 'visible'>> = ({
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              maxLength={MAX_REVIEW_LEN + 50} // allow typing, but we validate trimmed length
+              maxLength={MAX_REVIEW_LEN + 50}
             />
             <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
               Minimum {MIN_REVIEW_LEN} characters ({commentLen}/{MAX_REVIEW_LEN})
@@ -216,23 +325,78 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({
   productName,
   onSubmit,
 }) => {
+  const { colors } = useTheme();
+  const isWeb = Platform.OS === 'web';
+
   // ✅ Provider INSIDE Modal = toast shows on the review screen (not behind it)
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType={isWeb ? 'fade' : 'slide'}
+      presentationStyle={isWeb ? 'overFullScreen' : 'pageSheet'}
+      transparent={isWeb}
       onRequestClose={onClose}
     >
       <ToastProvider>
-        <AddReviewModalContent onClose={onClose} productName={productName} onSubmit={onSubmit} />
+        <View style={[
+          styles.modalContainer,
+          isWeb && { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+          !isWeb && { backgroundColor: colors.background },
+        ]}>
+          <AddReviewModalContent 
+            onClose={onClose} 
+            productName={productName} 
+            onSubmit={onSubmit}
+            onBackdropPress={onClose}
+          />
+        </View>
       </ToastProvider>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: Spacing['3xl'] },
+  modalContainer: {
+    flex: 1,
+  },
+  
+  // ✨ Web styles
+  webBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  webCard: {
+    borderRadius: BorderRadius.xl,
+    maxHeight: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  webScrollContent: {
+    padding: Spacing.xl,
+  },
+  formWeb: {
+    gap: Spacing.lg,
+  },
+  webButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  webButton: {
+    flex: 1,
+    minWidth: 120,
+  },
+
+  // Mobile styles (original)
+  container: { 
+    flex: 1, 
+    paddingTop: Spacing['3xl'],
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -245,7 +409,9 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     marginBottom: Spacing.xs,
   },
-  subtitle: { fontSize: FontSize.base },
+  subtitle: { 
+    fontSize: FontSize.base,
+  },
   closeButton: {
     width: 36,
     height: 36,
@@ -253,9 +419,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  form: { paddingHorizontal: Spacing.lg, gap: Spacing.xl },
-  field: { gap: Spacing.sm },
-  label: { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
+  form: { 
+    paddingHorizontal: Spacing.lg, 
+    gap: Spacing.xl,
+  },
+  field: { 
+    gap: Spacing.sm,
+  },
+  label: { 
+    fontSize: FontSize.sm, 
+    fontWeight: FontWeight.medium,
+  },
   textInput: {
     height: 48,
     borderRadius: BorderRadius.lg,
@@ -269,12 +443,17 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     fontSize: FontSize.base,
   },
-  charCount: { fontSize: FontSize.xs, marginTop: Spacing.xs },
+  charCount: { 
+    fontSize: FontSize.xs, 
+    marginTop: Spacing.xs,
+  },
   buttons: {
     flexDirection: 'row',
     gap: Spacing.md,
     marginTop: Spacing.lg,
     paddingBottom: Spacing['3xl'],
   },
-  button: { flex: 1 },
+  button: { 
+    flex: 1,
+  },
 });
